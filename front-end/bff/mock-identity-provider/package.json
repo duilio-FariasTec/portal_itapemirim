@@ -1,1 +1,1 @@
-{"name":"ani-mock-identity-provider","private":true,"type":"module","scripts":{"dev":"NODE_ENV=development node --experimental-strip-types src/server.ts"}}
+{"name":"ani-mock-identity-provider","private":true,"type":"module","scripts":{"dev":"node --experimental-strip-types src/server.ts"}}

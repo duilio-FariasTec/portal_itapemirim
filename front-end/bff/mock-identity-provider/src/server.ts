@@ -85,5 +85,5 @@ const server = createServer(async (req, res) => {
   json(res, 404, { title: 'Not found', status: 404 });
 });
 
-if (process.env.NODE_ENV !== 'development' || !['127.0.0.1', 'localhost'].includes(process.env.ANI_MOCK_IDP_BIND ?? '127.0.0.1')) throw new Error('O provedor de identidade simulado só pode iniciar em desenvolvimento local.');
+if ((process.env.NODE_ENV ?? 'development') !== 'development' || !['127.0.0.1', 'localhost'].includes(process.env.ANI_MOCK_IDP_BIND ?? '127.0.0.1')) throw new Error('O provedor de identidade simulado só pode iniciar em desenvolvimento local.');
 server.listen(port, '127.0.0.1', () => console.log(`ANI Mock Identity Provider disponível em http://127.0.0.1:${port}`));

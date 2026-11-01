@@ -202,5 +202,5 @@ const server = createServer(async (req, res) => {
   respond(res, 405, { title: 'Operação não permitida', status: 405 });
 });
 
-if (process.env.NODE_ENV !== 'development' || !['127.0.0.1', 'localhost'].includes(process.env.ANI_CORE_BIND ?? '127.0.0.1')) throw new Error('Mock Core só pode iniciar em desenvolvimento local.');
+if ((process.env.NODE_ENV ?? 'development') !== 'development' || !['127.0.0.1', 'localhost'].includes(process.env.ANI_CORE_BIND ?? '127.0.0.1')) throw new Error('Mock Core só pode iniciar em desenvolvimento local.');
 server.listen(port, '127.0.0.1', () => console.log(`ANI mock Core disponível em http://127.0.0.1:${port}/health`));

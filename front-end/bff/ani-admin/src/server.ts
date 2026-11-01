@@ -7,7 +7,7 @@ type Session = { actor: DemoActor; id: string; displayName: string; profileLabel
 type RouteRule = { capability?: Capability; public?: boolean };
 
 const port = Number(process.env.ANI_BFF_PORT ?? 3333);
-const coreBaseUrl = process.env.ANI_CORE_BASE_URL ?? (process.env.ANI_CORE_MODE === 'mock' ? 'http://127.0.0.1:3334' : '');
+const coreBaseUrl = process.env.ANI_CORE_BASE_URL ?? ((process.env.ANI_CORE_MODE ?? 'mock') === 'mock' ? 'http://127.0.0.1:3334' : '');
 const mockIdentityBaseUrl = process.env.ANI_MOCK_IDP_URL ?? 'http://127.0.0.1:3335';
 const adminFrontendUrl = process.env.ANI_ADMIN_FRONTEND_URL ?? 'http://127.0.0.1:4200/';
 const authMode = process.env.ANI_AUTH_MODE ?? 'unconfigured';
@@ -293,7 +293,7 @@ async function handle(request: IncomingMessage, response: ServerResponse): Promi
   send(response, 404, { title: 'Not found', status: 404 });
 }
 
-if (process.env.NODE_ENV !== 'development' || authMode !== 'mock' || coreMode !== 'mock') {
+if (nodeEnv !== 'development' || authMode !== 'mock' || coreMode !== 'mock') {
   throw new Error('Servidor mock exige NODE_ENV=development, ANI_AUTH_MODE=mock e ANI_CORE_MODE=mock. Use api-server.ts para integração.');
 }
 if (!['127.0.0.1', 'localhost'].includes(new URL(coreBaseUrl).hostname)) {
