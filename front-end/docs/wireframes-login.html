@@ -1,0 +1,127 @@
+<div id="ani-login-wireframes" class="viz-dotted-background">
+  <style>
+    #ani-login-wireframes {
+      --bg: light-dark(#f7f7f5, #101722);
+      --surface: light-dark(#ffffff, #182230);
+      --surface-2: light-dark(#f8f9fb, #202c3b);
+      --ink: light-dark(#202a37, #e7edf5);
+      --muted: light-dark(#667085, #a8b3c3);
+      --line: light-dark(#dce2ea, #354254);
+      --accent: light-dark(#242424, #e7edf5);
+      --yellow: light-dark(#f2c230, #f0c52b);
+      --yellow-soft: light-dark(#fff7dc, #3b3420);
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 14px;
+      line-height: 1.45;
+      width: 100%;
+    }
+    #ani-login-wireframes * { box-sizing: border-box; }
+    #ani-login-wireframes .app { min-height: 760px; display: grid; grid-template-rows: 62px 1fr 42px; overflow: hidden; border: 1px solid var(--line); border-radius: 12px; background: var(--bg); }
+    #ani-login-wireframes .top { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 0 30px; background: var(--surface); border-bottom: 1px solid var(--line); }
+    #ani-login-wireframes .brand { display: flex; align-items: center; gap: 10px; }
+    #ani-login-wireframes .mark { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 8px; background: var(--yellow); color: #201b0b; font-size: 11px; font-weight: 850; }
+    #ani-login-wireframes .brand-name { font-size: 13px; font-weight: 750; letter-spacing: -.02em; }
+    #ani-login-wireframes .brand-caption { color: var(--muted); font-size: 10px; }
+    #ani-login-wireframes .top-context { color: var(--muted); font-size: 12px; }
+    #ani-login-wireframes .body { display: grid; place-items: center; padding: 28px 18px; background: radial-gradient(ellipse at 50% 45%, var(--surface) 0, var(--bg) 68%); }
+    #ani-login-wireframes .card { width: min(100%, 440px); padding: 30px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); box-shadow: 0 12px 34px rgb(20 27 38 / 7%); }
+    #ani-login-wireframes .eyebrow { display: inline-flex; align-items: center; gap: 7px; min-height: 26px; margin-bottom: 17px; padding: 3px 10px; border-radius: 999px; background: var(--yellow-soft); color: var(--accent); font-size: 11px; font-weight: 650; }
+    #ani-login-wireframes .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--yellow); }
+    #ani-login-wireframes h1 { margin: 0; font-size: 25px; line-height: 1.25; letter-spacing: -.035em; }
+    #ani-login-wireframes .subtitle { margin: 7px 0 23px; color: var(--muted); font-size: 13px; }
+    #ani-login-wireframes .field { margin-top: 15px; }
+    #ani-login-wireframes label { display: block; margin-bottom: 6px; font-size: 12px; font-weight: 650; }
+    #ani-login-wireframes input, #ani-login-wireframes select, #ani-login-wireframes textarea { width: 100%; min-height: 43px; padding: 0 12px; border: 1px solid var(--line); border-radius: 7px; outline: none; background: var(--surface); color: var(--ink); font: inherit; font-size: 13px; }
+    #ani-login-wireframes textarea { min-height: 84px; padding-top: 10px; resize: vertical; }
+    #ani-login-wireframes input::placeholder, #ani-login-wireframes textarea::placeholder { color: #929baa; }
+    #ani-login-wireframes input:focus, #ani-login-wireframes select:focus, #ani-login-wireframes textarea:focus { border-color: #b79425; box-shadow: 0 0 0 3px rgb(242 194 48 / 18%); }
+    #ani-login-wireframes .password-wrap { display: flex; gap: 7px; }
+    #ani-login-wireframes .password-wrap input { flex: 1; }
+    #ani-login-wireframes .show { min-width: 68px; border: 1px solid var(--line); border-radius: 7px; background: var(--surface-2); color: var(--ink); font: inherit; font-size: 12px; cursor: pointer; }
+    #ani-login-wireframes .hint { margin-top: 6px; color: var(--muted); font-size: 10px; }
+    #ani-login-wireframes .btn { display: inline-flex; align-items: center; justify-content: center; min-height: 43px; padding: 0 15px; border: 1px solid var(--line); border-radius: 7px; background: var(--surface); color: var(--ink); font: inherit; font-size: 12px; font-weight: 650; text-decoration: none; cursor: pointer; }
+    #ani-login-wireframes .primary { width: 100%; margin-top: 21px; border-color: #242424; background: #242424; color: white; }
+    #ani-login-wireframes .btn:hover, #ani-login-wireframes .show:hover { filter: brightness(.97); }
+    #ani-login-wireframes .divider { height: 1px; margin: 21px 0 15px; background: var(--line); }
+    #ani-login-wireframes .support { color: var(--muted); font-size: 11px; line-height: 1.6; }
+    #ani-login-wireframes .request-link { display: inline-flex; margin-top: 13px; padding: 0; border: 0; background: transparent; color: var(--accent); font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }
+    #ani-login-wireframes .request-link span { box-shadow: inset 0 -2px 0 var(--yellow); }
+    #ani-login-wireframes .back-link { margin-top: 17px; padding: 0; border: 0; background: transparent; color: var(--accent); font: inherit; font-size: 12px; font-weight: 650; cursor: pointer; }
+    #ani-login-wireframes .foot { display: flex; align-items: center; justify-content: center; padding: 0 15px; border-top: 1px solid var(--line); background: var(--surface); color: var(--muted); font-size: 10px; text-align: center; }
+    #ani-login-wireframes .screen[hidden] { display: none; }
+    #ani-login-wireframes .success { padding: 17px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-2); }
+    #ani-login-wireframes .success strong { display: block; margin-bottom: 5px; font-size: 13px; }
+    #ani-login-wireframes .success p { margin: 0; color: var(--muted); font-size: 12px; }
+    @media (max-width: 520px) {
+      #ani-login-wireframes .app { min-height: 100vh; border-radius: 0; }
+      #ani-login-wireframes .top { padding: 0 15px; }
+      #ani-login-wireframes .top-context { max-width: 130px; text-align: right; }
+      #ani-login-wireframes .body { padding: 18px 12px; }
+      #ani-login-wireframes .card { padding: 23px 20px; }
+    }
+  </style>
+  <div class="app">
+    <header class="top">
+      <div class="brand"><div class="mark" aria-hidden="true">NI</div><div><div class="brand-name">Nova Itapemirim</div><div class="brand-caption">Autorizador ANI</div></div></div>
+      <div class="top-context" id="ani-login-context">Acesso seguro ao Sistema A</div>
+    </header>
+    <main class="body">
+      <section class="card screen" data-screen="login" aria-labelledby="ani-login-title">
+        <div class="eyebrow"><span class="dot" aria-hidden="true"></span> Acesso ao Sistema A</div>
+        <h1 id="ani-login-title">Entrar</h1>
+        <p class="subtitle">Use seu login do Autorizador para continuar.</p>
+        <form id="ani-login-form">
+          <div class="field"><label for="ani-login-user">Login</label><input id="ani-login-user" name="username" autocomplete="username" placeholder="Digite seu login" required></div>
+          <div class="field"><label for="ani-login-password">Senha</label><div class="password-wrap"><input id="ani-login-password" name="password" type="password" autocomplete="current-password" placeholder="Digite sua senha" required><button class="show" type="button" data-toggle-password>Exibir</button></div></div>
+          <button class="btn primary" type="submit">Entrar no Sistema A</button>
+        </form>
+        <div class="divider"></div>
+        <div class="support">O ANI valida sua identidade e consulta os acessos disponíveis para este sistema.</div>
+        <button class="request-link" type="button" data-go="request">Ainda não tem acesso?&nbsp; <span>Solicitar acesso</span></button>
+      </section>
+      <section class="card screen" data-screen="request" aria-labelledby="ani-request-title" hidden>
+        <div class="eyebrow"><span class="dot" aria-hidden="true"></span> Novo acesso</div>
+        <h1 id="ani-request-title">Solicitar acesso</h1>
+        <p class="subtitle">Envie seus dados para análise pelo responsável do sistema.</p>
+        <form id="ani-request-form">
+          <div class="field"><label for="ani-request-system">Sistema solicitado</label><select id="ani-request-system" name="system" required><option value="Sistema A">Sistema A</option><option value="Sistema B">Sistema B</option></select><div class="hint">O sistema pode ser informado pelo aplicativo que incorporou esta tela.</div></div>
+          <div class="field"><label for="ani-request-name">Nome completo</label><input id="ani-request-name" name="name" autocomplete="name" placeholder="Digite seu nome" required></div>
+          <div class="field"><label for="ani-request-email">E-mail para contato</label><input id="ani-request-email" name="email" type="email" autocomplete="email" placeholder="nome@empresa.com" required></div>
+          <div class="field"><label for="ani-request-reason">Justificativa <span style="color:var(--muted);font-weight:400">(opcional, a confirmar)</span></label><textarea id="ani-request-reason" name="reason" placeholder="Informe brevemente por que precisa do acesso"></textarea></div>
+          <button class="btn primary" type="submit">Enviar solicitação</button>
+        </form>
+        <button class="back-link" type="button" data-go="login">← Voltar para o login</button>
+        <div class="divider"></div>
+        <div class="support">Enviar a solicitação não libera acesso automaticamente. O pedido será analisado pelo responsável.</div>
+      </section>
+      <section class="card screen" data-screen="confirmation" aria-labelledby="ani-confirm-title" hidden>
+        <div class="eyebrow"><span class="dot" aria-hidden="true"></span> Solicitação registrada</div>
+        <h1 id="ani-confirm-title">Pedido enviado</h1>
+        <p class="subtitle">Sua solicitação foi encaminhada para análise.</p>
+        <div class="success"><strong>Próximo passo</strong><p>O responsável pelo sistema analisará o pedido. O envio não concede acesso automaticamente.</p></div>
+        <button class="btn primary" type="button" data-go="login">Voltar para o login</button>
+      </section>
+    </main>
+    <footer class="foot">Autorizador Nova Itapemirim · ANI &nbsp;|&nbsp; Sua identidade é única; os acessos são concedidos por sistema.</footer>
+  </div>
+  <script>
+    (() => {
+      const root = document.getElementById('ani-login-wireframes');
+      const screens = [...root.querySelectorAll('[data-screen]')];
+      const context = root.querySelector('#ani-login-context');
+      const show = (name) => {
+        screens.forEach((screen) => { screen.hidden = screen.dataset.screen !== name; });
+        context.textContent = name === 'login' ? 'Acesso seguro ao Sistema A' : name === 'request' ? 'Solicitação de acesso ao Sistema A' : 'Solicitação enviada';
+      };
+      root.querySelectorAll('[data-go]').forEach((button) => button.addEventListener('click', () => show(button.dataset.go)));
+      root.querySelector('[data-toggle-password]').addEventListener('click', (event) => {
+        const input = root.querySelector('#ani-login-password');
+        input.type = input.type === 'password' ? 'text' : 'password';
+        event.currentTarget.textContent = input.type === 'password' ? 'Exibir' : 'Ocultar';
+      });
+      root.querySelector('#ani-login-form').addEventListener('submit', (event) => event.preventDefault());
+      root.querySelector('#ani-request-form').addEventListener('submit', (event) => { event.preventDefault(); if (event.currentTarget.reportValidity()) show('confirmation'); });
+    })();
+  </script>
+</div>

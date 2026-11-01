@@ -1,0 +1,28 @@
+# Runtime configuration and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+.aws/
+.codex/
+.agents/
+
+# Dependencies, generated builds and local caches
+node_modules/
+dist/
+.angular/
+coverage/
+out-tsc/
+*.tsbuildinfo
+*.log
+
+# Local screenshots, evidence and read-only source material
+/outputs/
+/sources/
+
+# Operating system artifacts
+.DS_Store
+Thumbs.db

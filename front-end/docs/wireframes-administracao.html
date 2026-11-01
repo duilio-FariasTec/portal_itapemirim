@@ -1,0 +1,290 @@
+<div id="ani-admin-wireframes" class="viz-dotted-background">
+  <style>
+    #ani-admin-wireframes {
+      --ani-bg: light-dark(#f7f7f5, #101722);
+      --ani-surface: light-dark(#ffffff, #182230);
+      --ani-surface-2: light-dark(#f8f9fb, #202c3b);
+      --ani-ink: light-dark(#202a37, #e7edf5);
+      --ani-muted: light-dark(#667085, #a8b3c3);
+      --ani-line: light-dark(#dce2ea, #354254);
+      --ani-blue: light-dark(#242424, #f0c52b);
+      --ani-blue-soft: light-dark(#fff7dc, #3b3420);
+      --ani-brand-yellow: light-dark(#f2c230, #f0c52b);
+      --ani-green: light-dark(#236a4b, #7fd0a8);
+      --ani-green-soft: light-dark(#eaf6ef, #1d3a30);
+      --ani-amber: light-dark(#95600a, #e8bf72);
+      --ani-amber-soft: light-dark(#fff5df, #40341e);
+      --ani-red: light-dark(#a23b39, #f08d89);
+      --ani-red-soft: light-dark(#fff0ef, #432625);
+      color: var(--ani-ink);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 14px;
+      line-height: 1.45;
+      width: 100%;
+    }
+    #ani-admin-wireframes * { box-sizing: border-box; }
+    #ani-admin-wireframes .ani-shell {
+      display: grid;
+      grid-template-columns: 222px minmax(0, 1fr);
+      min-height: 690px;
+      background: var(--ani-bg);
+      border: 1px solid var(--ani-line);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    #ani-admin-wireframes .ani-sidebar {
+      padding: 22px 13px;
+      background: var(--ani-surface);
+      border-right: 1px solid var(--ani-line);
+    }
+    #ani-admin-wireframes .ani-brand { display: flex; gap: 10px; align-items: center; padding: 0 8px 25px; }
+    #ani-admin-wireframes .ani-mark { display: grid; place-items: center; width: 36px; height: 36px; flex: 0 0 36px; border-radius: 9px; background: var(--ani-brand-yellow); color: #201b0b; font-size: 11px; font-weight: 800; }
+    #ani-admin-wireframes .ani-brand-title { font-size: 13px; font-weight: 650; }
+    #ani-admin-wireframes .ani-brand-caption { color: var(--ani-muted); font-size: 11px; margin-top: 1px; }
+    #ani-admin-wireframes .ani-nav-label { padding: 0 9px; margin: 5px 0 7px; color: var(--ani-muted); font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; }
+    #ani-admin-wireframes .ani-nav { display: grid; gap: 4px; }
+    #ani-admin-wireframes .ani-nav button { width: 100%; min-height: 39px; padding: 8px 10px; border: 0; border-radius: 7px; text-align: left; background: transparent; color: var(--ani-muted); font: inherit; font-size: 12px; cursor: pointer; }
+    #ani-admin-wireframes .ani-nav button[aria-pressed="true"] { background: var(--ani-blue-soft); color: var(--ani-blue); font-weight: 650; box-shadow: inset 3px 0 0 var(--ani-brand-yellow); }
+    #ani-admin-wireframes .ani-nav button:hover { background: var(--ani-surface-2); color: var(--ani-ink); }
+    #ani-admin-wireframes .ani-side-foot { margin: 28px 9px 0; padding-top: 14px; border-top: 1px solid var(--ani-line); color: var(--ani-muted); font-size: 11px; }
+    #ani-admin-wireframes .ani-main { min-width: 0; }
+    #ani-admin-wireframes .ani-topbar { height: 59px; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0 25px; background: var(--ani-surface); border-bottom: 1px solid var(--ani-line); }
+    #ani-admin-wireframes .ani-crumb { color: var(--ani-muted); font-size: 12px; }
+    #ani-admin-wireframes .ani-user-chip { display: flex; align-items: center; gap: 8px; color: var(--ani-ink); font-size: 12px; white-space: nowrap; }
+    #ani-admin-wireframes .ani-avatar { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--ani-blue-soft); color: var(--ani-blue); font-weight: 700; }
+    #ani-admin-wireframes .ani-content { padding: 25px; }
+    #ani-admin-wireframes .ani-screen[hidden] { display: none; }
+    #ani-admin-wireframes .ani-page-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 20px; }
+    #ani-admin-wireframes h1 { margin: 0; font-size: 22px; line-height: 1.25; letter-spacing: -.02em; font-weight: 650; }
+    #ani-admin-wireframes h2 { margin: 0; font-size: 15px; font-weight: 650; }
+    #ani-admin-wireframes h3 { margin: 0; font-size: 13px; font-weight: 650; }
+    #ani-admin-wireframes .ani-subtitle { margin: 5px 0 0; color: var(--ani-muted); font-size: 12px; }
+    #ani-admin-wireframes .ani-btn { min-height: 35px; padding: 0 12px; border: 1px solid var(--ani-line); border-radius: 7px; background: var(--ani-surface); color: var(--ani-ink); font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+    #ani-admin-wireframes .ani-btn-primary { border-color: #242424; background: #242424; color: #fff; }
+    #ani-admin-wireframes .ani-btn-quiet { border-color: transparent; background: transparent; color: var(--ani-blue); }
+    #ani-admin-wireframes .ani-btn-danger { border-color: var(--ani-red); color: var(--ani-red); }
+    #ani-admin-wireframes .ani-btn:hover { filter: brightness(.97); }
+    #ani-admin-wireframes .ani-toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: 9px; margin-bottom: 14px; }
+    #ani-admin-wireframes .ani-input, #ani-admin-wireframes .ani-select { min-height: 36px; min-width: 140px; padding: 0 10px; border: 1px solid var(--ani-line); border-radius: 7px; background: var(--ani-surface); color: var(--ani-ink); font: inherit; font-size: 12px; }
+    #ani-admin-wireframes .ani-search { flex: 1 1 180px; }
+    #ani-admin-wireframes .ani-panel { background: var(--ani-surface); border: 1px solid var(--ani-line); border-radius: 10px; }
+    #ani-admin-wireframes .ani-panel-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 16px; border-bottom: 1px solid var(--ani-line); }
+    #ani-admin-wireframes .ani-panel-body { padding: 14px 16px; }
+    #ani-admin-wireframes .ani-count { color: var(--ani-muted); font-size: 11px; }
+    #ani-admin-wireframes .ani-table-wrap { overflow-x: auto; }
+    #ani-admin-wireframes table { width: 100%; border-collapse: collapse; text-align: left; font-size: 12px; }
+    #ani-admin-wireframes th { padding: 10px 12px; color: var(--ani-muted); background: var(--ani-surface-2); font-size: 10px; text-transform: uppercase; letter-spacing: .04em; font-weight: 700; white-space: nowrap; }
+    #ani-admin-wireframes td { padding: 11px 12px; border-top: 1px solid var(--ani-line); vertical-align: middle; }
+    #ani-admin-wireframes .ani-primary-cell { font-weight: 600; }
+    #ani-admin-wireframes .ani-secondary-cell { display: block; margin-top: 2px; color: var(--ani-muted); font-size: 11px; }
+    #ani-admin-wireframes .ani-status { display: inline-block; padding: 3px 8px; border-radius: 999px; background: var(--ani-amber-soft); color: var(--ani-amber); font-size: 10px; font-weight: 700; white-space: nowrap; }
+    #ani-admin-wireframes .ani-status-ok { background: var(--ani-green-soft); color: var(--ani-green); }
+    #ani-admin-wireframes .ani-status-off { background: var(--ani-surface-2); color: var(--ani-muted); }
+    #ani-admin-wireframes .ani-status-denied { background: var(--ani-red-soft); color: var(--ani-red); }
+    #ani-admin-wireframes .ani-inline-action { color: var(--ani-blue); border: 0; background: transparent; font: inherit; font-size: 11px; font-weight: 650; cursor: pointer; }
+    #ani-admin-wireframes .ani-inline-action:hover { text-decoration: underline; }
+    #ani-admin-wireframes .ani-note { margin-top: 13px; padding: 11px 13px; border-radius: 7px; border-left: 3px solid var(--ani-brand-yellow); background: var(--ani-blue-soft); color: var(--ani-muted); font-size: 11px; }
+    #ani-admin-wireframes .ani-split { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(210px, .85fr); gap: 14px; }
+    #ani-admin-wireframes .ani-user-summary { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+    #ani-admin-wireframes .ani-user-big { display: grid; place-items: center; width: 42px; height: 42px; border-radius: 50%; background: var(--ani-blue-soft); color: var(--ani-blue); font-weight: 700; }
+    #ani-admin-wireframes .ani-user-email { margin-top: 3px; color: var(--ani-muted); font-size: 11px; }
+    #ani-admin-wireframes .ani-system-list { display: grid; gap: 9px; }
+    #ani-admin-wireframes .ani-system-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 11px 12px; border: 1px solid var(--ani-line); border-radius: 8px; }
+    #ani-admin-wireframes .ani-system-meta { color: var(--ani-muted); font-size: 11px; margin-top: 2px; }
+    #ani-admin-wireframes .ani-tabs { display: flex; gap: 5px; border-bottom: 1px solid var(--ani-line); margin-bottom: 14px; }
+    #ani-admin-wireframes .ani-tab { min-height: 35px; padding: 0 10px; border: 0; border-bottom: 2px solid transparent; background: transparent; color: var(--ani-muted); font: inherit; font-size: 12px; cursor: pointer; }
+    #ani-admin-wireframes .ani-tab[aria-pressed="true"] { border-bottom-color: var(--ani-blue); color: var(--ani-blue); font-weight: 650; }
+    #ani-admin-wireframes .ani-mini-grid { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 10px; margin: 15px 0; }
+    #ani-admin-wireframes .ani-mini { padding: 12px; border: 1px solid var(--ani-line); border-radius: 8px; background: var(--ani-surface); }
+    #ani-admin-wireframes .ani-mini-label { color: var(--ani-muted); font-size: 10px; }
+    #ani-admin-wireframes .ani-mini-value { margin-top: 5px; font-size: 16px; font-weight: 650; }
+    #ani-admin-wireframes .ani-report-foot { margin-top: 12px; color: var(--ani-muted); font-size: 11px; }
+    #ani-admin-wireframes .ani-dialog-backdrop[hidden] { display: none; }
+    #ani-admin-wireframes .ani-dialog-backdrop { position: absolute; inset: 0; z-index: 4; display: grid; place-items: center; padding: 20px; background: rgb(8 15 25 / 48%); }
+    #ani-admin-wireframes .ani-dialog { width: min(100%, 440px); padding: 20px; border: 1px solid var(--ani-line); border-radius: 11px; background: var(--ani-surface); box-shadow: 0 22px 60px rgb(0 0 0 / 22%); }
+    #ani-admin-wireframes .ani-dialog-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+    #ani-admin-wireframes .ani-dialog p { margin: 6px 0 15px; color: var(--ani-muted); font-size: 12px; }
+    #ani-admin-wireframes .ani-form-row { margin-top: 12px; }
+    #ani-admin-wireframes .ani-form-row label { display: block; margin-bottom: 5px; font-size: 11px; font-weight: 650; }
+    #ani-admin-wireframes .ani-form-row .ani-select { width: 100%; }
+    #ani-admin-wireframes .ani-dialog-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
+    #ani-admin-wireframes .ani-muted { color: var(--ani-muted); }
+    #ani-admin-wireframes .ani-flow { display: flex; align-items: center; flex-wrap: wrap; gap: 7px; margin-top: 14px; }
+    #ani-admin-wireframes .ani-flow-step { padding: 7px 9px; border: 1px solid var(--ani-line); border-radius: 7px; background: var(--ani-surface); font-size: 10px; }
+    #ani-admin-wireframes .ani-flow-arrow { color: var(--ani-muted); }
+    @media (max-width: 760px) {
+      #ani-admin-wireframes .ani-shell { grid-template-columns: 1fr; }
+      #ani-admin-wireframes .ani-sidebar { border-right: 0; border-bottom: 1px solid var(--ani-line); padding: 12px; }
+      #ani-admin-wireframes .ani-brand { padding: 0 4px 11px; }
+      #ani-admin-wireframes .ani-nav { display: flex; flex-wrap: wrap; }
+      #ani-admin-wireframes .ani-nav button { width: auto; min-height: 34px; }
+      #ani-admin-wireframes .ani-nav-label, #ani-admin-wireframes .ani-side-foot { display: none; }
+      #ani-admin-wireframes .ani-topbar { padding: 0 15px; }
+      #ani-admin-wireframes .ani-content { padding: 16px; }
+      #ani-admin-wireframes .ani-split { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 480px) {
+      #ani-admin-wireframes .ani-mini-grid { grid-template-columns: 1fr; }
+      #ani-admin-wireframes .ani-page-head { flex-direction: column; }
+      #ani-admin-wireframes .ani-page-head > .ani-btn { align-self: flex-start; }
+      #ani-admin-wireframes .ani-user-chip span:last-child { display: none; }
+      #ani-admin-wireframes .ani-toolbar > * { flex: 1 1 100%; }
+      #ani-admin-wireframes .ani-select, #ani-admin-wireframes .ani-input { width: 100%; }
+    }
+  </style>
+  <div class="ani-shell">
+    <aside class="ani-sidebar" aria-label="Navegação administrativa ANI">
+      <div class="ani-brand">
+        <div class="ani-mark" aria-hidden="true">NI</div>
+        <div><div class="ani-brand-title">Nova Itapemirim</div><div class="ani-brand-caption">Autorizador · Administração</div></div>
+      </div>
+      <div class="ani-nav-label">Acesso</div>
+      <nav class="ani-nav" aria-label="Seções administrativas">
+        <button type="button" data-page="requests" aria-pressed="true">Solicitações de acesso</button>
+        <button type="button" data-page="users" aria-pressed="false">Usuários e acessos</button>
+        <button type="button" data-page="catalog" aria-pressed="false">Sistemas e perfis</button>
+        <button type="button" data-page="audit" aria-pressed="false">Análise e auditoria</button>
+        <button type="button" data-page="reports" aria-pressed="false">Relatórios de acesso</button>
+      </nav>
+      <div class="ani-side-foot">Identidade ANI única<br>Perfis e acessos por sistema</div>
+    </aside>
+    <main class="ani-main">
+      <header class="ani-topbar">
+        <div class="ani-crumb">Portal administrativo <span aria-hidden="true">/</span> <strong id="ani-current-page">Solicitações</strong></div>
+        <div class="ani-user-chip"><span class="ani-avatar" aria-hidden="true">AD</span><span>Administrador ANI</span></div>
+      </header>
+      <div class="ani-content">
+        <section class="ani-screen" data-screen="requests" aria-labelledby="ani-requests-title">
+          <div class="ani-page-head">
+            <div><h1 id="ani-requests-title">Solicitações de acesso</h1><p class="ani-subtitle">Analise pedidos vinculados ao sistema que iniciou a solicitação.</p></div>
+            <span class="ani-status">3 pendentes</span>
+          </div>
+          <div class="ani-toolbar">
+            <input class="ani-input ani-search" aria-label="Buscar solicitação" placeholder="Buscar por nome ou e-mail">
+            <select class="ani-select" aria-label="Filtrar por sistema"><option>Todos os sistemas</option><option>Sistema A</option><option>Sistema B</option></select>
+            <select class="ani-select" aria-label="Filtrar por situação"><option>Pendentes</option><option>Todos os status</option><option>Aprovadas</option><option>Rejeitadas</option></select>
+          </div>
+          <div class="ani-panel">
+            <div class="ani-panel-head"><h2>Fila de análise</h2><span class="ani-count">Exemplos fictícios</span></div>
+            <div class="ani-table-wrap"><table><thead><tr><th>Solicitante</th><th>Sistema</th><th>Enviada em</th><th>Status</th><th></th></tr></thead><tbody>
+              <tr><td><span class="ani-primary-cell">Pessoa Exemplo</span><span class="ani-secondary-cell">pessoa.exemplo@empresa.test</span></td><td>Sistema A</td><td>31 out. 2026</td><td><span class="ani-status">Pendente</span></td><td><button class="ani-inline-action" type="button" data-dialog="request">Analisar</button></td></tr>
+              <tr><td><span class="ani-primary-cell">Usuário Demonstração</span><span class="ani-secondary-cell">usuario.demo@empresa.test</span></td><td>Sistema B</td><td>30 out. 2026</td><td><span class="ani-status">Pendente</span></td><td><button class="ani-inline-action" type="button" data-dialog="request">Analisar</button></td></tr>
+              <tr><td><span class="ani-primary-cell">Conta de Exemplo</span><span class="ani-secondary-cell">conta.exemplo@empresa.test</span></td><td>Sistema A</td><td>29 out. 2026</td><td><span class="ani-status">Pendente</span></td><td><button class="ani-inline-action" type="button" data-dialog="request">Analisar</button></td></tr>
+            </tbody></table></div>
+          </div>
+          <div class="ani-note">A aprovação pode criar uma identidade ANI ou conceder acesso a uma identidade existente. Essa regra ainda precisa ser confirmada.</div>
+        </section>
+
+        <section class="ani-screen" data-screen="users" aria-labelledby="ani-users-title" hidden>
+          <div class="ani-page-head"><div><h1 id="ani-users-title">Usuários e acessos</h1><p class="ani-subtitle">Uma identidade ANI pode receber perfis diferentes em vários sistemas.</p></div><button class="ani-btn ani-btn-primary" type="button" data-dialog="grant">Conceder acesso a sistema</button></div>
+          <div class="ani-toolbar"><input class="ani-input ani-search" aria-label="Buscar usuário" value="Pessoa Exemplo"><button class="ani-btn" type="button">Buscar</button></div>
+          <div class="ani-split">
+            <div class="ani-panel"><div class="ani-panel-head"><h2>Identidade ANI</h2><span class="ani-status ani-status-ok">Ativa</span></div><div class="ani-panel-body">
+              <div class="ani-user-summary"><div class="ani-user-big" aria-hidden="true">PE</div><div><h3>Pessoa Exemplo</h3><div class="ani-user-email">pessoa.exemplo@empresa.test · login único ANI</div></div></div>
+              <div class="ani-table-wrap"><table><thead><tr><th>Sistema</th><th>Perfil</th><th>Acesso</th><th></th></tr></thead><tbody>
+                <tr><td>Sistema A</td><td>Perfil A</td><td><span class="ani-status ani-status-ok">Ativo</span></td><td><button class="ani-inline-action" type="button">Revogar</button></td></tr>
+                <tr><td>Sistema B</td><td>Perfil B</td><td><span class="ani-status ani-status-ok">Ativo</span></td><td><button class="ani-inline-action" type="button">Revogar</button></td></tr>
+              </tbody></table></div>
+            </div></div>
+            <div class="ani-panel"><div class="ani-panel-head"><h2>Como funciona</h2></div><div class="ani-panel-body"><div class="ani-system-list">
+              <div class="ani-system-row"><div><h3>Identidade única</h3><div class="ani-system-meta">Um login e uma senha ANI</div></div></div>
+              <div class="ani-system-row"><div><h3>Acessos separados</h3><div class="ani-system-meta">Perfil definido por sistema</div></div></div>
+              <div class="ani-system-row"><div><h3>Histórico</h3><div class="ani-system-meta">Concessões e revogações auditadas</div></div></div>
+            </div></div></div>
+          </div>
+          <div class="ani-note">Conceder acesso em outro sistema não duplica a conta nem a senha. O administrador seleciona um perfil válido no sistema de destino.</div>
+        </section>
+
+        <section class="ani-screen" data-screen="catalog" aria-labelledby="ani-catalog-title" hidden>
+          <div class="ani-page-head"><div><h1 id="ani-catalog-title">Sistemas e perfis</h1><p class="ani-subtitle">Mantenha sistemas consumidores e perfis associados a cada sistema.</p></div><button class="ani-btn ani-btn-primary" type="button">Novo sistema</button></div>
+          <div class="ani-tabs" role="tablist" aria-label="Catálogos"><button class="ani-tab" type="button" data-catalog-tab="systems" aria-pressed="true">Sistemas</button><button class="ani-tab" type="button" data-catalog-tab="profiles" aria-pressed="false">Perfis e permissões</button></div>
+          <div data-catalog-view="systems" class="ani-panel"><div class="ani-panel-head"><h2>Sistemas cadastrados</h2><span class="ani-count">Exemplos fictícios</span></div><div class="ani-table-wrap"><table><thead><tr><th>Sistema</th><th>Identificador</th><th>Perfis</th><th>Status</th><th></th></tr></thead><tbody>
+            <tr><td><span class="ani-primary-cell">Sistema A</span><span class="ani-secondary-cell">Consumidor integrado</span></td><td>CLIENT-A</td><td>4</td><td><span class="ani-status ani-status-ok">Ativo</span></td><td><button class="ani-inline-action" type="button">Editar</button></td></tr>
+            <tr><td><span class="ani-primary-cell">Sistema B</span><span class="ani-secondary-cell">Consumidor integrado</span></td><td>CLIENT-B</td><td>3</td><td><span class="ani-status ani-status-ok">Ativo</span></td><td><button class="ani-inline-action" type="button">Editar</button></td></tr>
+          </tbody></table></div></div>
+          <div data-catalog-view="profiles" class="ani-panel" hidden><div class="ani-panel-head"><h2>Perfis por sistema</h2><button class="ani-btn" type="button">Novo perfil</button></div><div class="ani-panel-body"><div class="ani-toolbar"><select class="ani-select" aria-label="Selecionar sistema"><option>Sistema A</option><option>Sistema B</option></select><span class="ani-muted">Permissões variam conforme as regras definidas pela área responsável.</span></div><div class="ani-table-wrap"><table><thead><tr><th>Perfil</th><th>Descrição</th><th>Permissões</th><th>Status</th><th></th></tr></thead><tbody>
+            <tr><td class="ani-primary-cell">Perfil A</td><td>Descrição a definir</td><td>Ver permissões</td><td><span class="ani-status ani-status-ok">Ativo</span></td><td><button class="ani-inline-action" type="button">Editar</button></td></tr>
+            <tr><td class="ani-primary-cell">Perfil B</td><td>Descrição a definir</td><td>Ver permissões</td><td><span class="ani-status ani-status-ok">Ativo</span></td><td><button class="ani-inline-action" type="button">Editar</button></td></tr>
+          </tbody></table></div></div></div>
+        </section>
+
+        <section class="ani-screen" data-screen="audit" aria-labelledby="ani-audit-title" hidden>
+          <div class="ani-page-head"><div><h1 id="ani-audit-title">Análise e auditoria</h1><p class="ani-subtitle">Consulte decisões e alterações feitas no Autorizador.</p></div></div>
+          <div class="ani-toolbar"><input class="ani-input" type="date" aria-label="Data inicial"><input class="ani-input" type="date" aria-label="Data final"><select class="ani-select" aria-label="Filtrar por sistema"><option>Todos os sistemas</option><option>Sistema A</option><option>Sistema B</option></select><select class="ani-select" aria-label="Filtrar por ação"><option>Todas as ações</option><option>Inclusão</option><option>Alteração</option><option>Revogação</option><option>Rejeição</option></select><button class="ani-btn" type="button">Aplicar filtros</button></div>
+          <div class="ani-panel"><div class="ani-panel-head"><h2>Eventos</h2><span class="ani-count">Exemplos fictícios</span></div><div class="ani-table-wrap"><table><thead><tr><th>Data/hora</th><th>Ator</th><th>Ação</th><th>Alvo</th><th>Sistema</th><th>Resultado</th></tr></thead><tbody>
+            <tr><td>31 out. 2026 · 10:42</td><td>Admin Exemplo</td><td>Acesso concedido</td><td>Pessoa Exemplo</td><td>Sistema A</td><td><span class="ani-status ani-status-ok">Sucesso</span></td></tr>
+            <tr><td>31 out. 2026 · 09:18</td><td>Admin Exemplo</td><td>Perfil alterado</td><td>Perfil A</td><td>Sistema B</td><td><span class="ani-status ani-status-ok">Sucesso</span></td></tr>
+            <tr><td>30 out. 2026 · 16:05</td><td>Admin Exemplo</td><td>Solicitação rejeitada</td><td>Pedido #REQ-EXEMPLO</td><td>Sistema A</td><td><span class="ani-status ani-status-denied">Rejeitado</span></td></tr>
+          </tbody></table></div></div>
+          <div class="ani-note">Não exibir senha, hash de senha, token ou segredo nos eventos de auditoria.</div>
+        </section>
+
+        <section class="ani-screen" data-screen="reports" aria-labelledby="ani-reports-title" hidden>
+          <div class="ani-page-head"><div><h1 id="ani-reports-title">Relatórios de acesso</h1><p class="ani-subtitle">Visualize usuários e perfis vigentes por sistema.</p></div><button class="ani-btn" type="button">Exportação a definir</button></div>
+          <div class="ani-panel"><div class="ani-panel-head"><h2>Filtros do relatório</h2></div><div class="ani-panel-body"><div class="ani-toolbar"><select class="ani-select" aria-label="Sistema do relatório"><option>Todos os sistemas</option><option>Sistema A</option><option>Sistema B</option></select><select class="ani-select" aria-label="Perfil do relatório"><option>Todos os perfis</option><option>Perfil A</option><option>Perfil B</option></select><select class="ani-select" aria-label="Status do acesso"><option>Acessos ativos</option><option>Todos os status</option><option>Revogados</option></select><input class="ani-input ani-search" aria-label="Buscar pessoa" placeholder="Usuário ou e-mail"><button class="ani-btn ani-btn-primary" type="button">Gerar relatório</button></div></div></div>
+          <div class="ani-mini-grid"><div class="ani-mini"><div class="ani-mini-label">Pessoas com acesso</div><div class="ani-mini-value">—</div></div><div class="ani-mini"><div class="ani-mini-label">Sistemas no filtro</div><div class="ani-mini-value">—</div></div><div class="ani-mini"><div class="ani-mini-label">Perfis atribuídos</div><div class="ani-mini-value">—</div></div></div>
+          <div class="ani-panel"><div class="ani-panel-head"><h2>Resultado</h2><span class="ani-count">Exemplos fictícios</span></div><div class="ani-table-wrap"><table><thead><tr><th>Usuário</th><th>Login ANI</th><th>Sistema</th><th>Perfil</th><th>Status</th><th>Concedido em</th></tr></thead><tbody>
+            <tr><td>Pessoa Exemplo</td><td>pessoa.exemplo</td><td>Sistema A</td><td>Perfil A</td><td><span class="ani-status ani-status-ok">Ativo</span></td><td>15 set. 2026</td></tr>
+            <tr><td>Pessoa Exemplo</td><td>pessoa.exemplo</td><td>Sistema B</td><td>Perfil B</td><td><span class="ani-status ani-status-ok">Ativo</span></td><td>21 out. 2026</td></tr>
+          </tbody></table></div></div>
+          <div class="ani-report-foot">Relatórios consolidados e exportação dependem de endpoint, filtros e permissões aprovados.</div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <div class="ani-dialog-backdrop" id="ani-request-dialog" role="presentation" hidden>
+    <section class="ani-dialog" role="dialog" aria-modal="true" aria-labelledby="ani-request-dialog-title">
+      <div class="ani-dialog-head"><div><h2 id="ani-request-dialog-title">Analisar solicitação</h2><p>Confira o pedido e a identidade antes de decidir.</p></div><button class="ani-btn" type="button" data-close-dialog aria-label="Fechar">Fechar</button></div>
+      <div class="ani-system-row"><div><h3>Pessoa Exemplo</h3><div class="ani-system-meta">pessoa.exemplo@empresa.test</div></div><span class="ani-status">Pendente</span></div>
+      <div class="ani-form-row"><label>Sistema solicitado</label><input class="ani-input" value="Sistema A" readonly></div>
+      <div class="ani-form-row"><label>Identidade ANI</label><select class="ani-select"><option>Nova identidade</option><option>Vincular a usuário existente</option></select></div>
+      <div class="ani-form-row"><label>Perfil no sistema</label><select class="ani-select"><option>Selecionar perfil do Sistema A</option><option>Perfil A</option><option>Perfil B</option></select></div>
+      <div class="ani-form-row"><label>Observação da análise</label><input class="ani-input" placeholder="Opcional, conforme política definida"></div>
+      <div class="ani-dialog-actions"><button class="ani-btn ani-btn-danger" type="button">Rejeitar</button><button class="ani-btn ani-btn-primary" type="button">Aprovar acesso</button></div>
+    </section>
+  </div>
+
+  <div class="ani-dialog-backdrop" id="ani-grant-dialog" role="presentation" hidden>
+    <section class="ani-dialog" role="dialog" aria-modal="true" aria-labelledby="ani-grant-dialog-title">
+      <div class="ani-dialog-head"><div><h2 id="ani-grant-dialog-title">Conceder acesso a sistema</h2><p>A mesma identidade ANI receberá um perfil no sistema de destino.</p></div><button class="ani-btn" type="button" data-close-dialog aria-label="Fechar">Fechar</button></div>
+      <div class="ani-form-row"><label>Usuário ANI</label><input class="ani-input" value="Pessoa Exemplo · pessoa.exemplo" readonly></div>
+      <div class="ani-form-row"><label>Sistema de destino</label><select class="ani-select"><option>Selecionar sistema</option><option>Sistema A</option><option>Sistema B</option></select></div>
+      <div class="ani-form-row"><label>Perfil válido no destino</label><select class="ani-select"><option>Selecionar perfil</option><option>Perfil A</option><option>Perfil B</option></select></div>
+      <div class="ani-note">Esta ação não cria outra conta nem copia a senha. Confirme se a política exige aprovação adicional.</div>
+      <div class="ani-dialog-actions"><button class="ani-btn" type="button" data-close-dialog>Cancelar</button><button class="ani-btn ani-btn-primary" type="button">Conceder acesso</button></div>
+    </section>
+  </div>
+
+  <script>
+    (() => {
+      const root = document.getElementById('ani-admin-wireframes');
+      const pageButtons = root.querySelectorAll('[data-page]');
+      const screens = root.querySelectorAll('[data-screen]');
+      const title = root.querySelector('#ani-current-page');
+      const labels = { requests: 'Solicitações', users: 'Usuários e acessos', catalog: 'Sistemas e perfis', audit: 'Análise e auditoria', reports: 'Relatórios de acesso' };
+      pageButtons.forEach(button => button.addEventListener('click', () => {
+        const page = button.dataset.page;
+        pageButtons.forEach(item => item.setAttribute('aria-pressed', String(item === button)));
+        screens.forEach(screen => { screen.hidden = screen.dataset.screen !== page; });
+        title.textContent = labels[page];
+      }));
+      root.querySelectorAll('[data-catalog-tab]').forEach(button => button.addEventListener('click', () => {
+        const view = button.dataset.catalogTab;
+        root.querySelectorAll('[data-catalog-tab]').forEach(item => item.setAttribute('aria-pressed', String(item === button)));
+        root.querySelectorAll('[data-catalog-view]').forEach(panel => { panel.hidden = panel.dataset.catalogView !== view; });
+      }));
+      root.querySelectorAll('[data-dialog]').forEach(button => button.addEventListener('click', () => {
+        const dialog = root.querySelector(button.dataset.dialog === 'request' ? '#ani-request-dialog' : '#ani-grant-dialog');
+        if (dialog) dialog.hidden = false;
+      }));
+      root.querySelectorAll('[data-close-dialog]').forEach(button => button.addEventListener('click', () => {
+        const dialog = button.closest('.ani-dialog-backdrop');
+        if (dialog) dialog.hidden = true;
+      }));
+      root.querySelectorAll('.ani-dialog-backdrop').forEach(dialog => dialog.addEventListener('click', event => {
+        if (event.target === dialog) dialog.hidden = true;
+      }));
+    })();
+  </script>
+</div>

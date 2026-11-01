@@ -1,0 +1,81 @@
+<main class="page">
+  <header class="topbar"><a class="brand" href="/"><strong>ANI</strong><span>Autorizador</span></a><span class="secure-label"><span class="secure-dot"></span> Acesso protegido</span></header>
+  <section class="hero">
+    <div class="intro"><p class="eyebrow">NOVA ITAPEMIRIM</p><h1>Uma identidade.<br><em>Seus acessos.</em></h1><p>O ANI conecta você aos sistemas da organização com os acessos definidos para o seu perfil.</p><div class="trust"><span>●</span> Autorização centralizada para sistemas corporativos</div></div>
+    <section class="card" aria-labelledby="card-title">
+      @if (page() === 'access' && loginContext()?.authenticated) {
+        <div class="success-mark" aria-hidden="true">✓</div>
+        <p class="eyebrow">ACESSO VALIDADO</p><h2 id="card-title" tabindex="-1">Olá, {{ loginContext()?.user?.displayName }}</h2>
+        <p class="subtext" role="status">Seu login foi confirmado pela API e sua sessão está ativa.</p>
+        @if (loginContext()?.adminUrl) { <a class="button primary demo-link" [href]="loginContext()?.adminUrl">Continuar para administração</a> }
+        @if (loginMessage()) { <p class="login-message" role="alert">{{ loginMessage() }}</p> }
+        <button class="button secondary" type="button" [disabled]="loggingOut()" (click)="logout()">{{ loggingOut() ? 'Saindo…' : 'Encerrar sessão' }}</button>
+      } @else if (page() === 'access') {
+        <p class="eyebrow">ÁREA SEGURA</p><h2 id="card-title">Entrar</h2><p class="subtext">Informe seu login e sua senha para acessar os sistemas autorizados.</p>
+        @if (contextLoading()) { <p role="status">Preparando acesso…</p> }
+        <form novalidate (ngSubmit)="submitLogin()" [attr.aria-busy]="loggingIn()">
+          <div class="field-group">
+            <label for="login">Login <span>*</span></label>
+            <input id="login" name="login" autocomplete="username" required maxlength="200" [disabled]="loggingIn() || contextLoading() || !loginContext()?.configured" [ngModel]="login()" (ngModelChange)="login.set($event); loginMessage.set('')" (blur)="loginTouched.set(true)" [class.invalid]="showLoginError()" [attr.aria-invalid]="showLoginError()" [attr.aria-describedby]="showLoginError() ? 'login-hint login-error' : 'login-hint'" />
+            <small id="login-hint" class="field-hint">Informe seu usuário de acesso.</small>
+            @if (showLoginError()) { <p id="login-error" class="field-error">Digite seu login para continuar.</p> }
+          </div>
+          <div class="field-group">
+            <label for="password">Senha <span>*</span></label>
+            <div class="password-field">
+              <input id="password" name="password" [type]="passwordVisible() ? 'text' : 'password'" autocomplete="current-password" required maxlength="256" [disabled]="loggingIn() || contextLoading() || !loginContext()?.configured" [ngModel]="password()" (ngModelChange)="password.set($event); loginMessage.set('')" (blur)="passwordTouched.set(true)" [class.invalid]="showPasswordError()" [attr.aria-invalid]="showPasswordError()" [attr.aria-describedby]="showPasswordError() ? 'password-hint password-error' : 'password-hint'" />
+              <button class="password-toggle" type="button" (click)="togglePassword()" [attr.aria-label]="passwordVisible() ? 'Ocultar senha' : 'Mostrar senha'" [attr.aria-pressed]="passwordVisible()">{{ passwordVisible() ? 'Ocultar' : 'Mostrar' }}</button>
+            </div>
+            <small id="password-hint" class="field-hint">Digite a senha cadastrada para sua conta.</small>
+            @if (showPasswordError()) { <p id="password-error" class="field-error">Digite sua senha para continuar.</p> }
+          </div>
+          @if (loginMessage()) { <p class="login-message" role="status" aria-live="polite">{{ loginMessage() }}</p> }
+          <button class="button primary" type="submit" [disabled]="loggingIn() || contextLoading() || !loginContext()?.configured">{{ loggingIn() ? 'Validando acesso…' : 'Entrar' }}</button>
+        </form>
+        @if (!contextLoading() && !loginContext()?.configured) { <button class="button secondary" type="button" (click)="loadLoginContext()">Atualizar acesso</button> }
+        <div class="separator"><span>ou</span></div>
+        <button class="button secondary" type="button" [disabled]="loggingIn()" (click)="openRequest()">Solicitar acesso</button>
+        <p class="footnote">Seu acesso será analisado pela equipe responsável pelo sistema.</p>
+      } @else if (!requested()) {
+        <button class="back" type="button" [disabled]="sending()" (click)="page.set('access')">← Voltar ao acesso</button><p class="eyebrow">NOVO ACESSO</p><h2 id="card-title">Solicitar cadastro</h2><p class="subtext">Informe seus dados e escolha um sistema disponível para análise.</p>
+        @if (systemsLoading()) {
+          <div class="request-state" role="status" aria-live="polite"><span class="spinner" aria-hidden="true"></span><span>Carregando sistemas disponíveis…</span></div>
+        } @else if (systemsError()) {
+          <div class="request-error" role="alert"><p>{{ systemsError() }}</p><button class="button secondary" type="button" (click)="loadSystems()">Tentar novamente</button></div>
+        } @else if (systems().length === 0) {
+          <div class="request-error" role="status"><p>Nenhum sistema está disponível para solicitação no momento.</p><button class="button secondary" type="button" (click)="loadSystems()">Atualizar lista</button></div>
+        } @else {
+          <form novalidate (ngSubmit)="submit()">
+            <div class="request-field">
+              <label for="name">Nome completo <span>*</span></label><input id="name" name="name" autocomplete="name" maxlength="120" required [ngModel]="fullName()" (ngModelChange)="fullName.set($event); error.set('')" (blur)="nameTouched.set(true)" [class.invalid]="showNameError()" [attr.aria-invalid]="showNameError()" [attr.aria-describedby]="showNameError() ? 'name-hint name-error' : 'name-hint'" />
+              <small id="name-hint" class="field-hint">Até 120 caracteres.</small>
+              @if (showNameError()) { <p id="name-error" class="field-error">Informe seu nome completo.</p> }
+              @else if (fullName().length > 120) { <p class="field-error">O nome deve ter no máximo 120 caracteres.</p> }
+            </div>
+            <div class="request-field">
+              <label for="email">E-mail para contato <span>*</span></label><input id="email" name="email" type="email" inputmode="email" autocomplete="email" maxlength="180" required [ngModel]="email()" (ngModelChange)="email.set($event); error.set('')" (blur)="emailTouched.set(true)" [class.invalid]="showEmailError()" [attr.aria-invalid]="showEmailError()" [attr.aria-describedby]="showEmailError() ? 'email-hint email-error' : 'email-hint'" />
+              <small id="email-hint" class="field-hint">Use um endereço de e-mail válido. Até 180 caracteres.</small>
+              @if (showEmailError()) { <p id="email-error" class="field-error">Informe um e-mail válido.</p> }
+              @else if (email().length > 180) { <p class="field-error">O e-mail deve ter no máximo 180 caracteres.</p> }
+            </div>
+            <div class="request-field">
+              <label for="system">Sistema solicitado <span>*</span></label><select id="system" name="system" required [ngModel]="systemId()" (ngModelChange)="systemId.set($event); error.set('')" (blur)="systemTouched.set(true)" [class.invalid]="showSystemError()" [attr.aria-invalid]="showSystemError()" [attr.aria-describedby]="showSystemError() ? 'system-hint system-error' : 'system-hint'"><option value="">Selecione um sistema</option>@for (system of systems(); track system.id) { <option [value]="system.id">{{ system.nome }}</option> }</select>
+              <small id="system-hint" class="field-hint">A lista contém sistemas cadastrados e ativos.</small>
+              @if (showSystemError()) { <p id="system-error" class="field-error">Selecione um sistema disponível.</p> }
+            </div>
+            <div class="request-field">
+              <label for="reason">Justificativa <small>(opcional)</small></label><textarea id="reason" name="reason" rows="3" maxlength="500" [ngModel]="reason()" (ngModelChange)="reason.set($event); error.set('')" aria-describedby="reason-hint"></textarea>
+              <small id="reason-hint" class="field-hint">Não inclua senhas ou dados sensíveis. Até 500 caracteres.</small>
+            </div>
+            @if (error()) { <p class="error" role="alert" aria-live="assertive">{{ error() }}</p> }
+            <button class="button primary" type="submit" [disabled]="!canSubmitRequest()">{{ sending() ? 'Enviando…' : 'Enviar solicitação' }}</button>
+          </form>
+        }
+        <p class="footnote">Enviar a solicitação não libera acesso. Os dados serão analisados pela equipe responsável.</p>
+      } @else {
+        <div class="success-mark">✓</div><p class="eyebrow">SOLICITAÇÃO REGISTRADA</p><h2 id="card-title">Recebemos seu pedido</h2><p class="subtext">Sua solicitação foi registrada no ambiente de demonstração e aguarda análise.</p><p class="request-reference"><span>Protocolo da solicitação</span><strong>{{ requestId() }}</strong></p><button class="button secondary" type="button" (click)="page.set('access')">Voltar ao início</button><button class="button secondary new-request" type="button" (click)="startAnotherRequest()">Fazer outra solicitação</button>
+      }
+    </section>
+  </section>
+  <footer>ANI Autorizador <span>·</span> Nova Itapemirim <span>·</span> Ambiente de desenvolvimento</footer>
+</main>

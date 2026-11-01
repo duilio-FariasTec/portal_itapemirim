@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="620" viewBox="0 0 760 620" role="img" aria-labelledby="title desc">
+  <title id="title">Wireframe de login ANI para o Sistema A</title>
+  <desc id="desc">Tela de login do Autorizador Nova Itapemirim, com campos de login e senha e botão para entrar no Sistema A. Inclui a opção para solicitar acesso.</desc>
+  <rect width="760" height="620" fill="#f7f7f5"/>
+  <rect x="171" y="24" width="418" height="572" rx="15" fill="#ffffff" stroke="#d6dce5"/>
+  <rect x="201" y="54" width="40" height="40" rx="10" fill="#fff7dc" stroke="#d6dce5"/>
+  <text x="221" y="79" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="700" fill="#201b0b">NI</text>
+  <text x="253" y="70" font-family="Arial, sans-serif" font-size="14" font-weight="700" fill="#202a37">Autorizador Nova Itapemirim</text>
+  <text x="253" y="89" font-family="Arial, sans-serif" font-size="12" fill="#667085">Acesso centralizado</text>
+  <rect x="201" y="122" width="145" height="28" rx="14" fill="#fff7dc"/>
+  <text x="273" y="140" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="700" fill="#52657f">Acesso ao Sistema A</text>
+  <text x="201" y="192" font-family="Arial, sans-serif" font-size="29" font-weight="700" fill="#202a37">Entrar</text>
+  <text x="201" y="219" font-family="Arial, sans-serif" font-size="14" fill="#667085">Use seu login do Autorizador para continuar.</text>
+  <text x="201" y="266" font-family="Arial, sans-serif" font-size="13" font-weight="700" fill="#202a37">Login</text>
+  <rect x="201" y="278" width="358" height="46" rx="7" fill="#ffffff" stroke="#cbd3df"/>
+  <text x="215" y="307" font-family="Arial, sans-serif" font-size="14" fill="#8993a3">Digite seu login</text>
+  <text x="201" y="361" font-family="Arial, sans-serif" font-size="13" font-weight="700" fill="#202a37">Senha</text>
+  <rect x="201" y="373" width="274" height="46" rx="7" fill="#ffffff" stroke="#cbd3df"/>
+  <text x="215" y="402" font-family="Arial, sans-serif" font-size="14" fill="#8993a3">Digite sua senha</text>
+  <rect x="483" y="373" width="76" height="46" rx="7" fill="#ffffff" stroke="#cbd3df"/>
+  <text x="521" y="401" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#667085">Exibir</text>
+  <rect x="201" y="443" width="358" height="48" rx="7" fill="#242424"/>
+  <text x="380" y="473" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="700" fill="#ffffff">Entrar no Sistema A</text>
+  <line x1="201" y1="507" x2="559" y2="507" stroke="#d6dce5"/>
+  <text x="201" y="533" font-family="Arial, sans-serif" font-size="12" fill="#667085">O ANI valida sua identidade e verifica os acessos</text>
+  <text x="201" y="550" font-family="Arial, sans-serif" font-size="12" fill="#667085">disponíveis para o Sistema A.</text>
+  <text x="201" y="574" font-family="Arial, sans-serif" font-size="12" fill="#667085">Ainda não tem acesso?</text>
+  <text x="337" y="574" font-family="Arial, sans-serif" font-size="12" font-weight="700" fill="#242424">Solicitar acesso</text>
+  <text x="380" y="590" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#8a94a3">Autorizador Nova Itapemirim · ANI</text>
+</svg>

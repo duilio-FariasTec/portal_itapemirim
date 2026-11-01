@@ -1,0 +1,13 @@
+{
+  "name": "@ani/ani-admin-bff",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "NODE_ENV=development node --env-file-if-exists=.env.local --experimental-strip-types src/api-server.ts",
+    "dev:mock": "NODE_ENV=development ANI_AUTH_MODE=mock ANI_CORE_MODE=mock node --experimental-strip-types src/server.ts",
+    "test": "NODE_ENV=test node --experimental-strip-types --test test/*.test.ts"
+  },
+  "engines": {
+    "node": ">=24.15 <25"
+  }
+}

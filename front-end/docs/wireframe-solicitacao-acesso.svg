@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="710" viewBox="0 0 760 710" role="img" aria-labelledby="title desc">
+  <title id="title">Wireframe de solicitação de acesso ANI</title>
+  <desc id="desc">Formulário para solicitar acesso ao Sistema A, com nome, e-mail e justificativa opcional.</desc>
+  <rect width="760" height="710" fill="#f7f7f5"/>
+  <rect x="171" y="20" width="418" height="670" rx="15" fill="#ffffff" stroke="#d6dce5"/>
+  <rect x="201" y="47" width="40" height="40" rx="10" fill="#fff7dc" stroke="#d6dce5"/>
+  <text x="221" y="72" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="700" fill="#201b0b">NI</text>
+  <text x="253" y="63" font-family="Arial, sans-serif" font-size="14" font-weight="700" fill="#202a37">Autorizador Nova Itapemirim</text>
+  <text x="253" y="82" font-family="Arial, sans-serif" font-size="12" fill="#667085">Solicitação de acesso</text>
+  <text x="201" y="132" font-family="Arial, sans-serif" font-size="26" font-weight="700" fill="#202a37">Solicitar acesso</text>
+  <text x="201" y="157" font-family="Arial, sans-serif" font-size="13" fill="#667085">Preencha os dados para pedir acesso ao sistema.</text>
+  <text x="201" y="198" font-family="Arial, sans-serif" font-size="13" font-weight="700" fill="#202a37">Sistema solicitado</text>
+  <rect x="201" y="210" width="358" height="44" rx="7" fill="#f7f7f5" stroke="#cbd3df"/>
+  <text x="215" y="238" font-family="Arial, sans-serif" font-size="14" fill="#344054">Sistema A</text>
+  <text x="201" y="272" font-family="Arial, sans-serif" font-size="11" fill="#667085">Identificado pelo sistema de origem</text>
+  <text x="201" y="313" font-family="Arial, sans-serif" font-size="13" font-weight="700" fill="#202a37">Nome completo</text>
+  <rect x="201" y="325" width="358" height="44" rx="7" fill="#ffffff" stroke="#cbd3df"/>
+  <text x="215" y="353" font-family="Arial, sans-serif" font-size="14" fill="#8993a3">Digite seu nome</text>
+  <text x="201" y="401" font-family="Arial, sans-serif" font-size="13" font-weight="700" fill="#202a37">E-mail para contato</text>
+  <rect x="201" y="413" width="358" height="44" rx="7" fill="#ffffff" stroke="#cbd3df"/>
+  <text x="215" y="441" font-family="Arial, sans-serif" font-size="14" fill="#8993a3">nome@empresa.com</text>
+  <text x="201" y="489" font-family="Arial, sans-serif" font-size="13" font-weight="700" fill="#202a37">Justificativa</text>
+  <text x="278" y="489" font-family="Arial, sans-serif" font-size="12" fill="#667085">(opcional, a confirmar)</text>
+  <rect x="201" y="501" width="358" height="75" rx="7" fill="#ffffff" stroke="#cbd3df"/>
+  <text x="215" y="528" font-family="Arial, sans-serif" font-size="13" fill="#8993a3">Informe brevemente por que precisa do acesso</text>
+  <rect x="201" y="598" width="358" height="46" rx="7" fill="#242424"/>
+  <text x="380" y="627" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="700" fill="#ffffff">Enviar solicitação</text>
+  <text x="201" y="663" font-family="Arial, sans-serif" font-size="12" fill="#242424">Voltar para o login</text>
+  <text x="380" y="682" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#8a94a3">Enviar a solicitação não libera acesso automaticamente</text>
+</svg>

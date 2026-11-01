@@ -1,0 +1,186 @@
+@if (!session()?.authenticated) {
+  <main class="login-wrap">
+    <section class="login-card" aria-labelledby="login-title">
+      <div class="brand-mark"><strong>ANI</strong><span>Autorizador</span></div>
+      <p class="eyebrow">AMBIENTE LOCAL DE DESENVOLVIMENTO</p>
+      <h1 id="login-title">Administração</h1>
+      <p class="muted">{{ session()?.coreMode === 'api' ? 'Acesse o ANI Login para entrar com seu usuário e senha.' : 'Entre em um cenário sintético para explorar as telas e os contratos da API.' }}</p>
+      @if (session()?.authMode === 'core') {
+        <p class="muted" role="status">Encaminhando para o ANI Login…</p>
+        <button class="button primary wide" (click)="goToLogin()">Entrar com login e senha</button>
+      } @else if (demoMode && session()?.authMode === 'mock') {
+        <label for="actor">Perfil de demonstração</label>
+        <select id="actor" [ngModel]="actor()" (ngModelChange)="actor.set($event)">
+          <option value="admin">Administrador — permissões amplas (mock)</option>
+          <option value="consulta">Consulta — leitura (mock)</option>
+        </select>
+        <button class="button primary wide" (click)="signIn()">Entrar no modo de demonstração</button>
+        <p class="hint">Este acesso simulado existe somente no servidor local. Não digite credenciais reais.</p>
+      } @else {
+        <div class="notice">Provedor de identidade ainda não configurado. O acesso está desabilitado.</div>
+      }
+      @if (message()) { <p class="feedback" role="status">{{ message() }}</p> }
+      @if (error()) { <p class="error-banner" role="alert">{{ error() }}</p> }
+    </section>
+  </main>
+} @else {
+  <div class="shell">
+    @if (mobileNavOpen()) { <button type="button" class="nav-backdrop" aria-label="Fechar navegação" (click)="closeMobileNavigation()"></button> }
+    <aside id="admin-navigation" class="sidebar" [class.sidebar-open]="mobileNavOpen()" aria-label="Navegação administrativa" (keydown)="handleMobileNavigationKeydown($event)">
+      <a class="brand-mark" href="/" aria-label="ANI Autorizador"><strong>ANI</strong><span>Autorizador</span></a>
+      <div class="sidebar-caption">ADMINISTRAÇÃO</div>
+      @for (group of ['Início', 'Operação', 'Configuração', 'Governança']; track group) {
+        <p class="nav-group">{{ group }}</p>
+        @for (item of navigation; track item.id) {
+          @if (item.group === group && canNavigate(item.id)) {
+            <button class="nav-item" [class.active]="section() === item.id" [attr.aria-current]="section() === item.id ? 'page' : null" (click)="select(item.id)">
+              <span class="nav-dot"></span>{{ item.label }}
+              @if (item.id === 'solicitacoes-cadastro' && pendingCount() > 0) { <span class="count">{{ pendingCount() }}</span> }
+            </button>
+          }
+        }
+      }
+      <button type="button" class="sidebar-close" aria-label="Fechar menu" (click)="closeMobileNavigation()">Fechar menu</button>
+      <div class="sidebar-bottom"><span class="env-dot"></span>{{ session()?.coreMode === 'api' ? 'Integração local com API' : 'Mock local · sem API real' }}</div>
+    </aside>
+    <main class="workspace">
+      <header class="topbar">
+        <div class="topbar-title"><button type="button" class="mobile-nav-toggle" aria-label="Abrir menu" aria-controls="admin-navigation" [attr.aria-expanded]="mobileNavOpen()" (click)="toggleMobileNavigation()"><span></span><span></span><span></span></button><div><span class="breadcrumb">ANI / Administração</span><h1>{{ title }}</h1></div></div>
+        <div class="user-menu"><span class="avatar">{{ session()?.user?.displayName?.slice(0, 1) }}</span><div><b>{{ session()?.user?.displayName }}</b><small>{{ session()?.user?.profileLabel }}</small></div><button class="button subtle" [disabled]="signingOut()" (click)="signOut()">{{ signingOut() ? 'Saindo…' : 'Sair' }}</button></div>
+      </header>
+      <section class="content">
+        @if (message()) { <div class="feedback" role="status" aria-live="polite">{{ message() }}<button type="button" class="feedback-close" aria-label="Fechar mensagem" (click)="message.set('')">×</button></div> }
+        @if (error()) { <div class="error-banner" role="alert">{{ error() }}<button type="button" class="feedback-close" aria-label="Fechar mensagem" (click)="error.set('')">×</button></div> }
+        @if (section() === 'visao-geral') {
+          <div class="welcome"><div><p class="eyebrow">PAINEL DE CONTROLE</p><h2>Bem-vindo ao ANI Admin</h2><p>Gerencie solicitações e consulte os dados de autorização disponíveis para seu perfil.</p></div><span class="welcome-icon">A</span></div>
+          <p class="eyebrow shortcut-caption">ATALHOS DE CONSULTA</p>
+          <div class="metric-grid">
+            @if (canNavigate('solicitacoes-cadastro')) { <button class="metric" (click)="select('solicitacoes-cadastro')"><span>Solicitações pendentes</span><strong>{{ session()?.coreMode === 'api' ? 'Aguardando integração' : pendingCount() }}</strong><small>Abrir fila de análise →</small></button> }
+            @if (canNavigate('usuarios')) { <button class="metric" (click)="select('usuarios')"><span>Usuários</span><strong>Abrir lista</strong><small>Pesquisar cadastros →</small></button> }
+            @if (canNavigate('auditoria')) { <button class="metric" (click)="select('auditoria')"><span>Trilha de auditoria</span><strong>Abrir lista</strong><small>Consultar registros →</small></button> }
+          </div>
+          @if (session()?.coreMode === 'api') { <div class="notice"><b>Integração com API</b><span>As informações são consultadas no Core. Recursos ainda não publicados retornam indisponibilidade.</span></div> } @else { <div class="notice mock-note"><b>Dados de demonstração</b><span>As informações desta execução são sintéticas e ficam apenas na memória do mock local.</span></div> }
+        } @else {
+          <div class="section-heading">
+            <div><p class="eyebrow">{{ isRequest() ? 'ANÁLISE E DECISÃO' : isReadOnly ? 'CONSULTA E GOVERNANÇA' : 'CADASTRO E MANUTENÇÃO' }}</p><h2>{{ title }}</h2><p>{{ recordCountLabel }} · {{ listIsMock() ? 'Dados sintéticos de demonstração.' : session()?.coreMode === 'api' ? 'Dados recebidos pela API via BFF.' : 'Dados recebidos pelo BFF mock local.' }}</p></div>
+            <div class="heading-actions">
+              @if (canManageCurrent) { <button class="button primary" (click)="createRecord()">+ Novo cadastro</button> }
+              @if (section() === 'relatorios/acessos' && rows().length) { <button class="button" (click)="downloadCsv()">Exportar página CSV</button> }
+              <button class="button" (click)="loadSection()" [disabled]="loading()">{{ loading() ? 'Atualizando…' : 'Atualizar' }}</button>
+            </div>
+          </div>
+          @if (listIsMock()) { <div class="notice" role="status"><b>Relatório demonstrativo</b> <span>Estes dados são sintéticos e não representam os acessos do QA. A integração do relatório com a API está pendente.</span></div> }
+          @if (!allowed) { <div class="empty"><b>Acesso não concedido</b><span>Seu perfil não possui capacidade para consultar esta área.</span></div> }
+          @else {
+            <form class="filter-bar" (ngSubmit)="applyFilters()">
+              <label class="search-field"><span>Buscar</span><input type="search" name="search" placeholder="Nome, e-mail, sistema ou recurso" [ngModel]="searchInput()" (ngModelChange)="searchInput.set($event)" /></label>
+              @if (statusFilterOptions().length) {
+                <label class="status-field"><span>Status</span><select name="status" [ngModel]="statusInput()" (ngModelChange)="statusInput.set($event)"><option value="">Todos</option>@for (option of statusFilterOptions(); track option.value) { <option [value]="option.value">{{ option.label }}</option> }</select></label>
+              }
+              <button class="button primary" type="submit">Aplicar filtros</button><button class="button" type="button" (click)="clearFilters()">Limpar</button>
+            </form>
+            @if (loading()) { <div class="empty" aria-live="polite"><span class="spinner" aria-hidden="true"></span><b>Carregando dados…</b></div> }
+            @else if (listFailed()) { <div class="empty" role="status"><b>Consulta não concluída</b><span>Não foi possível verificar os registros. Tente carregar a lista novamente.</span><button class="button" (click)="loadSection()">Tentar novamente</button></div> }
+            @else if (rows().length === 0) { <div class="empty"><b>Nenhum registro encontrado</b><span>{{ appliedSearch() || appliedStatus() ? 'Altere ou limpe os filtros para tentar novamente.' : 'Ainda não há registros disponíveis nesta lista.' }}</span>@if (canManageCurrent) { <button class="button" (click)="createRecord()">Criar primeiro cadastro</button> }</div> }
+            @else {
+              <div class="table-wrap" role="region" aria-label="Tabela de resultados; pode ser rolada horizontalmente" tabindex="0"><table><thead><tr>@for (key of visibleColumns(); track key) { <th scope="col">{{ formatKey(key) }}</th> }<th scope="col" class="actions-heading">Ações</th></tr></thead><tbody>
+                @for (row of rows(); track row['id']) {
+                  <tr>@for (key of visibleColumns(); track key) { <td>@if (key === 'status' || key === 'resultado') { <span class="status-badge" [class]="'status-badge ' + statusClass(row[key])">{{ statusLabel(row[key]) }}</span> } @else { {{ value(row[key], key) }} }</td> }
+                    <td class="actions"><button class="button compact" (click)="openDetails(row)">Detalhes</button>
+                      @if (canManageCurrent) {
+                        @if (row['status'] !== 'inativo') { <button class="button compact" (click)="editRecord(row)">Editar</button><button class="button compact danger" (click)="requestDeactivate(row)">Inativar</button> }
+                      }
+                      @if (isRequest() && canDecide() && row['status'] === 'pending') { <button class="button compact primary" [disabled]="pendingOperation() !== null" (click)="openDecision(rowId(row), 'aprovar')">Aprovar</button><button class="button compact danger" [disabled]="pendingOperation() !== null" (click)="openDecision(rowId(row), 'rejeitar')">Rejeitar</button> }
+                    </td>
+                  </tr>
+                }
+              </tbody></table></div>
+              <div class="record-cards" aria-label="Resultados">
+                @for (row of rows(); track row['id']) {
+                  <article class="record-card">
+                    <h3>{{ rowLabel(row) }}</h3>
+                    <dl>@for (key of visibleColumns(); track key) { @if (key !== 'nome') { <div><dt>{{ formatKey(key) }}</dt><dd>@if (key === 'status' || key === 'resultado') { <span class="status-badge" [class]="'status-badge ' + statusClass(row[key])">{{ statusLabel(row[key]) }}</span> } @else { {{ value(row[key], key) }} }</dd></div> } }</dl>
+                    <div class="record-actions"><button class="button compact" (click)="openDetails(row)">Detalhes</button>
+                      @if (canManageCurrent && row['status'] !== 'inativo') { <button class="button compact" (click)="editRecord(row)">Editar</button><button class="button compact danger" (click)="requestDeactivate(row)">Inativar</button> }
+                      @if (isRequest() && canDecide() && row['status'] === 'pending') { <button class="button compact primary" [disabled]="pendingOperation() !== null" (click)="openDecision(rowId(row), 'aprovar')">Aprovar</button><button class="button compact danger" [disabled]="pendingOperation() !== null" (click)="openDecision(rowId(row), 'rejeitar')">Rejeitar</button> }
+                    </div>
+                  </article>
+                }
+              </div>
+              <div class="table-footer"><span>{{ recordCountLabel }}</span><div class="pagination"><button class="button compact" [disabled]="page() <= 1 || loading()" (click)="changePage(-1)">← Anterior</button><span>Página {{ page() }} de {{ pageCount }}</span><button class="button compact" [disabled]="page() >= pageCount || loading()" (click)="changePage(1)">Próxima →</button></div></div>
+            }
+            <p class="disclaimer">A autorização definitiva deve ser validada pela API Core em cada operação. As restrições da interface não substituem controles no servidor.</p>
+          }
+        }
+      </section>
+    </main>
+  </div>
+}
+
+@if (editor(); as form) {
+  <div class="modal-backdrop" (click)="closeEditor()">
+    <section class="modal" role="dialog" aria-modal="true" aria-labelledby="editor-title" tabindex="-1" (click)="$event.stopPropagation()" (keydown)="handleDialogKeydown($event)">
+      <header class="modal-header"><div><p class="eyebrow">{{ form.id ? 'ATUALIZAÇÃO DE CADASTRO' : 'NOVO CADASTRO' }}</p><h2 id="editor-title">{{ editorTitle() }}</h2></div><button class="icon-button" aria-label="Fechar" [disabled]="saving()" (click)="closeEditor()">×</button></header>
+      <form class="modal-form" novalidate (ngSubmit)="saveRecord()">
+        @for (field of fieldsForEditor(); track field.key) {
+          <div class="form-field"><label [for]="'field-' + field.key">{{ field.label }} @if (field.required) { <span>*</span> }</label>
+            @switch (field.type) {
+              @case ('status') { <select [id]="'field-' + field.key" [name]="field.key" [attr.autofocus]="$first ? '' : null" [ngModel]="form.values[field.key]" (ngModelChange)="setEditorValue(field.key, $event)">@for (option of statusOptions(); track option.value) { <option [value]="option.value">{{ option.label }}</option> }</select> }
+              @case ('system') { <select [id]="'field-' + field.key" [name]="field.key" [attr.autofocus]="$first ? '' : null" [ngModel]="form.values[field.key]" (ngModelChange)="setEditorValue(field.key, $event)" required><option value="">Selecione um sistema</option>@for (system of systems(); track system['id']) { <option [value]="system['id']">{{ system['nome'] }}</option> }</select> }
+              @default { <input [id]="'field-' + field.key" [name]="field.key" [type]="field.type === 'email' ? 'email' : 'text'" [attr.autofocus]="$first ? '' : null" [required]="field.required ?? false" [ngModel]="form.values[field.key]" (ngModelChange)="setEditorValue(field.key, $event)" /> }
+            }
+            @if (field.hint) { <small>{{ field.hint }}</small> }
+          </div>
+        }
+        @if (editorError()) { <p class="field-error" role="alert">{{ editorError() }}</p> }
+        <footer class="modal-actions"><button type="button" class="button" [disabled]="saving()" (click)="closeEditor()">Cancelar</button><button class="button primary" type="submit" [disabled]="saving()">{{ saving() ? 'Salvando…' : 'Salvar cadastro' }}</button></footer>
+      </form>
+    </section>
+  </div>
+}
+
+@if (detail(); as selected) {
+  <div class="modal-backdrop" (click)="closeDetails()">
+    <section class="modal detail-modal" role="dialog" aria-modal="true" aria-labelledby="detail-title" tabindex="-1" (click)="$event.stopPropagation()" (keydown)="handleDialogKeydown($event)">
+      <header class="modal-header"><div><p class="eyebrow">CONSULTA DE REGISTRO</p><h2 id="detail-title">{{ rowLabel(selected.record) }}</h2></div><button class="icon-button" aria-label="Fechar" autofocus (click)="closeDetails()">×</button></header>
+      @if (detailLoading()) { <div class="empty"><span class="spinner" aria-hidden="true"></span><b>Carregando detalhes…</b></div> }
+      @else {
+        <dl class="detail-grid">@for (key of visibleColumns(); track key) { @if (selected.record[key] !== undefined) { <div><dt>{{ formatKey(key) }}</dt><dd>{{ key === 'status' || key === 'resultado' ? statusLabel(selected.record[key]) : value(selected.record[key], key) }}</dd></div> } }@if (selected.resource === 'solicitacoes-cadastro') { <div class="detail-wide"><dt>Justificativa do solicitante</dt><dd class="preserve-lines">{{ value(selected.record['justificativa']) }}</dd></div> }@if (selected.resource === 'solicitacoes-cadastro' && selected.record['motivoDecisao']) { <div class="detail-wide"><dt>Motivo da decisão</dt><dd class="preserve-lines">{{ value(selected.record['motivoDecisao']) }}</dd></div> }<div><dt>Identificador</dt><dd>{{ selected.record['id'] }}</dd></div></dl>
+        @if (selected.resource === 'usuarios') {
+          <section class="relation-section"><div class="relation-heading"><div><h3>Perfis atribuídos</h3><p>O usuário mantém o mesmo login; perfis podem conceder acesso a sistemas diferentes.</p></div></div>
+            @if (userProfiles().length) { <ul class="relation-list">@for (profile of userProfiles(); track profile['id']) { <li><span><b>{{ profile['nome'] }}</b><small>{{ profile['sistemaNome'] }} · {{ statusLabel(profile['status']) }}</small></span>@if (canManageCurrent) { <button class="button compact danger" [disabled]="pendingOperation() !== null" (click)="revokeUserProfile(profile)">Revogar</button> }</li> }</ul> } @else { <p class="muted-inline">Nenhum perfil atribuído.</p> }
+            @if (canManageCurrent && availableProfilesToAssign().length) { <div class="assign-row"><select aria-label="Perfil para atribuir" [disabled]="pendingOperation() !== null" [ngModel]="selectedProfileId()" (ngModelChange)="selectedProfileId.set($event)"><option value="">Selecione um perfil ativo</option>@for (profile of availableProfilesToAssign(); track profile['id']) { <option [value]="profile['id']">{{ profile['nome'] }} · {{ profile['sistemaNome'] }}</option> }</select><button class="button primary" [disabled]="!selectedProfileId() || pendingOperation() !== null" (click)="assignUserProfile()">{{ pendingOperation() === 'assign-profile' ? 'Atribuindo…' : 'Atribuir acesso' }}</button></div> }
+          </section>
+          <section class="relation-section"><div class="relation-heading"><div><h3>Permissões efetivas</h3><p>Resultado combinado dos perfis ativos atribuídos ao usuário.</p></div></div>
+            @if (userPermissions().length) { <ul class="permission-chips">@for (permission of userPermissions(); track permission['id']) { <li>{{ permission['nome'] }} <small>{{ permission['recurso'] }} · {{ permission['acao'] }} · {{ permission['escopo'] }}</small></li> }</ul> } @else { <p class="muted-inline">Nenhuma permissão efetiva encontrada.</p> }
+          </section>
+        }
+        @if (selected.resource === 'perfis') {
+          <section class="relation-section"><div class="relation-heading"><div><h3>Permissões do perfil</h3><p>As operações são autorizadas novamente pela API Core.</p></div></div>
+            @if (profilePermissions().length) { <ul class="relation-list">@for (permission of profilePermissions(); track permission['id']) { <li><span><b>{{ permission['nome'] }}</b><small>{{ permission['recurso'] }} · {{ permission['acao'] }} · {{ permission['escopo'] }}</small></span>@if (canManageCurrent) { <button class="button compact danger" [disabled]="pendingOperation() !== null" (click)="revokeProfilePermission(permission)">Revogar</button> }</li> }</ul> } @else { <p class="muted-inline">Nenhuma permissão associada.</p> }
+            @if (canManageCurrent && availablePermissionsToAssign().length) { <div class="assign-row"><select aria-label="Permissão para associar" [disabled]="pendingOperation() !== null" [ngModel]="selectedPermissionId()" (ngModelChange)="selectedPermissionId.set($event)"><option value="">Selecione uma permissão ativa</option>@for (permission of availablePermissionsToAssign(); track permission['id']) { <option [value]="permission['id']">{{ permission['nome'] }} · {{ permission['recurso'] }}:{{ permission['acao'] }}</option> }</select><button class="button primary" [disabled]="!selectedPermissionId() || pendingOperation() !== null" (click)="assignProfilePermission()">{{ pendingOperation() === 'assign-permission' ? 'Associando…' : 'Associar' }}</button></div> }
+          </section>
+        }
+      }
+      <footer class="modal-actions"><button class="button" (click)="closeDetails()">Fechar</button></footer>
+    </section>
+  </div>
+}
+
+@if (pendingDeactivate(); as pending) {
+  <div class="modal-backdrop" (click)="closeDeactivation()"><section class="modal confirm-modal" role="alertdialog" aria-modal="true" aria-labelledby="confirm-title" tabindex="-1" (click)="$event.stopPropagation()" (keydown)="handleDialogKeydown($event)"><p class="eyebrow">CONFIRMAR AÇÃO</p><h2 id="confirm-title">Inativar cadastro?</h2><p><b>{{ pending.label }}</b> deixará de ser oferecido para novas atribuições. O histórico será preservado.</p><footer class="modal-actions"><button class="button" autofocus [disabled]="pendingOperation() !== null" (click)="closeDeactivation()">Cancelar</button><button class="button danger" [disabled]="pendingOperation() !== null" (click)="confirmDeactivate()">{{ pendingOperation() === 'deactivate' ? 'Inativando…' : 'Confirmar inativação' }}</button></footer></section></div>
+}
+
+@if (decisionDialog(); as decision) {
+  <div class="modal-backdrop" (click)="closeDecision()"><section class="modal confirm-modal" role="dialog" aria-modal="true" aria-labelledby="decision-title" tabindex="-1" (click)="$event.stopPropagation()" (keydown)="handleDialogKeydown($event)">
+    <p class="eyebrow">ANÁLISE DE SOLICITAÇÃO</p>
+    <h2 id="decision-title">{{ decision.decision === 'aprovar' ? 'Aprovar solicitação?' : 'Rejeitar solicitação?' }}</h2>
+    <p>{{ decision.decision === 'aprovar' ? 'A decisão atualizará o status no ambiente mock. O mock não cria usuário nem concede perfil.' : 'A rejeição ficará registrada no ambiente mock. Você pode informar um motivo para a decisão.' }}</p>
+    @if (decision.decision === 'rejeitar') {
+      <label class="decision-reason" for="decision-reason">Motivo <small>(opcional, até 500 caracteres)</small></label>
+      <textarea id="decision-reason" maxlength="500" rows="4" autofocus [ngModel]="decisionReason()" (ngModelChange)="decisionReason.set($event)" aria-describedby="decision-reason-hint"></textarea>
+      <small id="decision-reason-hint" class="form-hint">Evite incluir dados pessoais desnecessários.</small>
+    }
+    <footer class="modal-actions"><button class="button" [attr.autofocus]="decision.decision === 'aprovar' ? '' : null" [disabled]="pendingOperation() !== null" (click)="closeDecision()">Cancelar</button><button class="button" [class.danger]="decision.decision === 'rejeitar'" [class.primary]="decision.decision === 'aprovar'" [disabled]="pendingOperation() !== null" (click)="confirmDecision()">{{ pendingOperation() === 'decision' ? 'Registrando…' : decision.decision === 'aprovar' ? 'Confirmar aprovação' : 'Confirmar rejeição' }}</button></footer>
+  </section></div>
+}
