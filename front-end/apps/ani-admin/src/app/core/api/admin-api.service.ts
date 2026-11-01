@@ -5,8 +5,9 @@ import { environment } from '../../../environments/environment';
 import {
   AniPermission, AniResource, ApiRecord, EffectivePermissions, ListQuery, PagedResult, Solicitation,
 } from '../../../../../../libs/api-contracts/src';
+import { MyAccess } from '../../features/meu-perfil/my-account';
 
-export type MaintainedResource = 'usuarios' | 'portais' | 'perfis' | 'permissoes';
+export type MaintainedResource = 'usuarios' | 'sistemas' | 'perfis' | 'permissoes';
 
 /** Typed browser-to-BFF boundary. This client never calls ANI Core directly. */
 @Injectable({ providedIn: 'root' })
@@ -25,6 +26,18 @@ export class AdminApiService {
 
   get(resource: AniResource, id: string): Observable<ApiRecord> {
     return this.http.get<ApiRecord>(`${this.baseUrl}/${resource}/${encodeURIComponent(id)}`, { withCredentials: true });
+  }
+
+  myProfile(): Observable<ApiRecord> {
+    return this.http.get<ApiRecord>(`${this.baseUrl}/me`, { withCredentials: true });
+  }
+
+  myAccess(): Observable<MyAccess> {
+    return this.http.get<MyAccess>(`${this.baseUrl}/me/acessos`, { withCredentials: true });
+  }
+
+  changePassword(body: { senhaAtual: string; novaSenha: string }): Observable<{ ok: boolean }> {
+    return this.http.post<{ ok: boolean }>(`${this.baseUrl}/auth/trocar-senha`, body, { withCredentials: true });
   }
 
   create(resource: MaintainedResource, body: object): Observable<ApiRecord> {

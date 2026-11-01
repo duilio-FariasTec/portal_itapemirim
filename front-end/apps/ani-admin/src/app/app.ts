@@ -5,15 +5,19 @@ import { firstValueFrom, forkJoin, of } from 'rxjs';
 import { AdminSession, AniResource, ApiRecord, EffectivePermissions, PagedResult } from '../../../../libs/api-contracts/src';
 import { AdminApiService, MaintainedResource } from './core/api/admin-api.service';
 import { CsrfTokenStore } from './core/auth/csrf-token.store';
+import { MeuPerfilComponent } from './features/meu-perfil/meu-perfil.component';
+import { MY_ACCOUNT_API, MyAccountApi } from './features/meu-perfil/my-account';
 
-type Section = 'visao-geral' | AniResource;
+type Section = 'visao-geral' | 'meu-perfil' | AniResource;
+type DataSection = Exclude<Section, 'visao-geral' | 'meu-perfil'>;
 type EditorState = { resource: MaintainedResource; id?: string; values: Record<string, string> };
 type Field = { key: string; label: string; required?: boolean; type?: 'text' | 'email' | 'system' | 'status'; hint?: string };
 const navigation: { id: Section; label: string; group: string }[] = [
   { id: 'visao-geral', label: 'Visão geral', group: 'Início' },
+  { id: 'meu-perfil', label: 'Meu Perfil', group: 'Início' },
   { id: 'solicitacoes-cadastro', label: 'Solicitações de acesso', group: 'Operação' },
   { id: 'usuarios', label: 'Usuários', group: 'Operação' },
-  { id: 'portais', label: 'Sistemas', group: 'Configuração' },
+  { id: 'sistemas', label: 'Sistemas', group: 'Configuração' },
   { id: 'perfis', label: 'Perfis', group: 'Configuração' },
   { id: 'permissoes', label: 'Permissões', group: 'Configuração' },
   { id: 'auditoria', label: 'Auditoria', group: 'Governança' },
@@ -21,12 +25,12 @@ const navigation: { id: Section; label: string; group: string }[] = [
 ];
 const fields: Record<MaintainedResource, Field[]> = {
   usuarios: [
-    { key: 'nome', label: 'Nome completo', required: true, hint: 'Nome que será exibido nas consultas e auditorias.' },
+    { key: 'nome', label: 'Nome completo', required: true, hint: 'Nome que será exibido nas consultas e auditorias. No cadastro, a senha inicial será o primeiro nome em minúsculas seguido de 1234.' },
     { key: 'email', label: 'E-mail', type: 'email', required: true },
-    { key: 'login', label: 'Login', hint: 'Identificador da conta no provedor de identidade.' },
+    { key: 'login', label: 'Login', hint: 'Use o padrão nome.sobrenome (ex.: maria.silva). A API ANI recusa e-mail como login.' },
     { key: 'status', label: 'Status', type: 'status' },
   ],
-  portais: [
+  sistemas: [
     { key: 'nome', label: 'Nome do sistema', required: true },
     { key: 'codigo', label: 'Código', required: true, hint: 'Identificador estável usado nas integrações.' },
     { key: 'descricao', label: 'Descrição' },
@@ -46,17 +50,23 @@ const fields: Record<MaintainedResource, Field[]> = {
     { key: 'status', label: 'Status', type: 'status' },
   ],
 };
-const columns: Record<Exclude<Section, 'visao-geral'>, string[]> = {
+const columns: Record<DataSection, string[]> = {
   'solicitacoes-cadastro': ['nome', 'email', 'sistemaNome', 'status', 'criadoEm'],
   usuarios: ['nome', 'email', 'login', 'status'],
-  portais: ['nome', 'codigo', 'descricao', 'status'],
+  sistemas: ['nome', 'codigo', 'descricao', 'status'],
   perfis: ['nome', 'sistemaNome', 'status'],
   permissoes: ['nome', 'recurso', 'acao', 'escopo', 'status'],
   auditoria: ['ator', 'acao', 'recurso', 'resultado', 'ocorridoEm'],
   'relatorios/acessos': ['sistema', 'usuariosAtivos', 'perfisAtivos'],
 };
 
-@Component({ imports: [FormsModule], selector: 'ani-admin-root', styleUrl: './app.scss', templateUrl: './app.html' })
+@Component({
+  imports: [FormsModule, MeuPerfilComponent], selector: 'ani-admin-root', styleUrl: './app.scss', templateUrl: './app.html',
+  providers: [{ provide: MY_ACCOUNT_API, useFactory: (): MyAccountApi => {
+    const api = inject(AdminApiService);
+    return { profile: () => api.myProfile(), access: () => api.myAccess(), changePassword: (body) => api.changePassword(body) };
+  } }],
+})
 export class App implements OnInit {
   private readonly http = inject(HttpClient);
   private readonly api = inject(AdminApiService);
@@ -82,12 +92,16 @@ export class App implements OnInit {
   protected readonly pageSize = 25;
   protected readonly searchInput = signal('');
   protected readonly statusInput = signal('');
+  protected readonly systemInput = signal('');
   protected readonly appliedSearch = signal('');
   protected readonly appliedStatus = signal('');
+  protected readonly appliedSystem = signal('');
   protected readonly editor = signal<EditorState | null>(null);
   protected readonly editorError = signal('');
   protected readonly fields = fields;
   protected readonly systems = signal<ApiRecord[]>([]);
+  protected readonly systemsLoading = signal(false);
+  protected readonly systemsError = signal('');
   protected readonly detail = signal<{ resource: Section; record: ApiRecord } | null>(null);
   protected readonly detailLoading = signal(false);
   protected readonly userProfiles = signal<ApiRecord[]>([]);
@@ -105,8 +119,9 @@ export class App implements OnInit {
 
   ngOnInit(): void { this.refreshSession(); }
   protected get title(): string { return navigation.find((item) => item.id === this.section())?.label ?? 'Visão geral'; }
-  protected get allowed(): boolean { return this.session()?.capabilities.includes(this.capabilityFor(this.section())) ?? false; }
-  protected get canManageCurrent(): boolean { return ['usuarios', 'portais', 'perfis', 'permissoes'].includes(this.section()) && (this.session()?.capabilities.includes(this.section() === 'usuarios' ? 'users.write' : 'catalog.write') ?? false); }
+  protected get allowed(): boolean { return this.section() === 'meu-perfil' || (this.session()?.capabilities.includes(this.capabilityFor(this.section())) ?? false); }
+  protected get canManageCurrent(): boolean { return ['usuarios', 'sistemas', 'perfis', 'permissoes'].includes(this.section()) && (this.session()?.capabilities.includes(this.section() === 'usuarios' ? 'users.write' : 'catalog.write') ?? false); }
+  protected get canDeactivateCurrent(): boolean { return this.canManageCurrent && !(this.section() === 'sistemas' && this.session()?.coreMode === 'api'); }
   protected get pageCount(): number { return Math.max(1, Math.ceil(this.total() / this.pageSize)); }
   protected get isReadOnly(): boolean { return this.section() === 'auditoria' || this.section() === 'relatorios/acessos'; }
 
@@ -151,7 +166,7 @@ export class App implements OnInit {
     if(!['http:','https:'].includes(target.protocol)||!['127.0.0.1','localhost'].includes(target.hostname)||target.pathname!=='/'||target.search||target.hash) { this.error.set('Destino de acesso inválido.');return; }
     window.location.assign(target.href);
   }
-  protected canNavigate(section:Section):boolean {return section==='visao-geral'||Boolean(this.session()?.capabilities.includes(this.capabilityFor(section)));}
+  protected canNavigate(section:Section):boolean {return section==='visao-geral'||section==='meu-perfil'||Boolean(this.session()?.capabilities.includes(this.capabilityFor(section)));}
   protected async signOut(): Promise<void> {
     if (this.signingOut()) return;
     this.signingOut.set(true);
@@ -178,17 +193,20 @@ export class App implements OnInit {
   }
   protected select(id: Section): void {
     this.closeMobileNavigation();
-    this.section.set(id); this.page.set(1); this.appliedSearch.set(''); this.appliedStatus.set(''); this.searchInput.set(''); this.statusInput.set(''); this.message.set(''); this.error.set(''); this.loadSection();
+    this.section.set(id); this.page.set(1); this.appliedSearch.set(''); this.appliedStatus.set(''); this.appliedSystem.set(''); this.searchInput.set(''); this.statusInput.set(''); this.systemInput.set(''); this.message.set(''); this.error.set('');
+    if (id === 'perfis') this.loadSystems();
+    this.loadSection();
   }
-  protected applyFilters(): void { this.page.set(1); this.appliedSearch.set(this.searchInput().trim()); this.appliedStatus.set(this.statusInput()); this.loadSection(); }
-  protected clearFilters(): void { this.searchInput.set(''); this.statusInput.set(''); this.appliedSearch.set(''); this.appliedStatus.set(''); this.page.set(1); this.loadSection(); }
+  protected applyFilters(): void { this.page.set(1); this.appliedSearch.set(this.searchInput().trim()); this.appliedStatus.set(this.statusInput()); this.appliedSystem.set(this.systemInput()); this.loadSection(); }
+  protected clearFilters(): void { this.searchInput.set(''); this.statusInput.set(''); this.systemInput.set(''); this.appliedSearch.set(''); this.appliedStatus.set(''); this.appliedSystem.set(''); this.page.set(1); this.loadSection(); }
   protected changePage(delta: number): void { const next = this.page() + delta; if (next >= 1 && next <= this.pageCount) { this.page.set(next); this.loadSection(); } }
   protected loadSection(): void {
     this.listFailed.set(false);
     this.listIsMock.set(false);
     if (this.section() === 'visao-geral') { this.rows.set([]); this.error.set(''); return; }
+    if (this.section() === 'meu-perfil') { this.rows.set([]); this.total.set(0); this.error.set(''); return; }
     this.loading.set(true); this.error.set('');
-    this.api.list(this.section() as AniResource, { page: this.page(), pageSize: this.pageSize, search: this.appliedSearch(), status: this.appliedStatus() || undefined }).subscribe({
+    this.api.list(this.section() as AniResource, { page: this.page(), pageSize: this.pageSize, search: this.appliedSearch(), status: this.appliedStatus() || undefined, sistemaId: this.section() === 'perfis' ? this.appliedSystem() || undefined : undefined }).subscribe({
       next: (result: PagedResult<ApiRecord>) => {
         this.listIsMock.set(result.dataMode==='mock');
         const items = result.items ?? []; this.rows.set(items); this.total.set(result.total ?? items.length);
@@ -197,7 +215,7 @@ export class App implements OnInit {
       error: (error: HttpErrorResponse) => { this.rows.set([]); this.total.set(0); this.loading.set(false); this.listFailed.set(true); this.showError(error, 'Não foi possível carregar os dados.'); },
     });
   }
-  protected visibleColumns(): string[] { return columns[this.section() as Exclude<Section, 'visao-geral'>] ?? []; }
+  protected visibleColumns(): string[] { return columns[this.section() as DataSection] ?? []; }
   protected formatKey(key: string): string {
     const labels: Record<string, string> = { nome: 'Nome', email: 'E-mail', login: 'Login', sistemaNome: 'Sistema', status: 'Status', criadoEm: 'Criada em', codigo: 'Código', descricao: 'Descrição', recurso: 'Recurso', acao: 'Ação', escopo: 'Escopo', ator: 'Ator', resultado: 'Resultado', ocorridoEm: 'Data e hora', sistema: 'Sistema', usuariosAtivos: 'Usuários ativos', perfisAtivos: 'Perfis ativos' };
     return labels[key] ?? key;
@@ -219,7 +237,7 @@ export class App implements OnInit {
     for (const field of this.resourceFields(resource, false)) values[field.key] = field.key === 'status' ? 'ativo' : '';
     this.editor.set({ resource, values }); this.editorError.set('');
     this.prepareModal();
-    if (resource === 'perfis' && this.session()?.coreMode !== 'api') this.loadSystems();
+    if (resource === 'perfis' && !this.systems().length && !this.systemsLoading()) this.loadSystems();
   }
   protected editRecord(row: ApiRecord): void {
     if (!this.canManageCurrent || !this.isMaintainedResource(this.section())) return;
@@ -227,7 +245,7 @@ export class App implements OnInit {
     for (const field of this.resourceFields(resource, true)) values[field.key] = String(row[field.key] ?? '');
     this.editor.set({ resource, id: this.rowId(row), values }); this.editorError.set('');
     this.prepareModal();
-    if (resource === 'perfis' && this.session()?.coreMode !== 'api') this.loadSystems();
+    if (resource === 'perfis' && !this.systems().length && !this.systemsLoading()) this.loadSystems();
   }
   protected closeEditor(): void { if (!this.saving()) { this.editor.set(null); this.restoreModalFocus(); } }
   protected setEditorValue(key: string, value: string): void {
@@ -236,7 +254,7 @@ export class App implements OnInit {
   }
   private resourceFields(resource: MaintainedResource, editing: boolean): Field[] {
     if (this.session()?.coreMode !== 'api') return fields[resource];
-    const base = fields[resource].filter(field => !['sistemaId', 'escopo'].includes(field.key) && !(resource === 'usuarios' && editing && field.key === 'login'));
+    const base = fields[resource].filter(field => field.key !== 'escopo' && !(resource === 'usuarios' && editing && field.key === 'login'));
     if (resource === 'permissoes') return [...(!editing ? [{ key: 'codigo', label: 'Código', required: true }] : []), ...base, { key: 'descricao', label: 'Descrição' }, { key: 'dscUrl', label: 'URL do recurso' }];
     return base;
   }
@@ -250,7 +268,7 @@ export class App implements OnInit {
     const payload = Object.fromEntries(Object.entries(state.values).map(([key, value]) => [key, value.trim()]));
     const operation = state.id ? this.api.update(state.resource, state.id, payload) : this.api.create(state.resource, payload);
     operation.subscribe({
-      next: () => { this.saving.set(false); this.editor.set(null); this.restoreModalFocus(); this.message.set(state.id ? 'Alterações salvas.' : 'Cadastro criado.'); this.loadSection(); },
+      next: () => { this.saving.set(false); this.editor.set(null); this.restoreModalFocus(); this.message.set(state.id ? 'Alterações salvas.' : state.resource === 'usuarios' && this.session()?.coreMode === 'api' ? 'Cadastro criado. Senha inicial: primeiro nome em minúsculas + 1234. Oriente a troca em Meu Perfil.' : 'Cadastro criado.'); this.loadSection(); },
       error: (error: HttpErrorResponse) => { this.saving.set(false); this.editorError.set(this.errorMessage(error, 'Não foi possível salvar o cadastro.')); },
     });
   }
@@ -333,30 +351,32 @@ export class App implements OnInit {
   protected assignUserProfile(): void {
     const id = String(this.detail()?.record['id'] ?? ''); const profileId = this.selectedProfileId(); if (!id || !profileId || this.pendingOperation()) return;
     this.pendingOperation.set('assign-profile');
-    this.api.assignUserProfile(id, profileId).subscribe({ next: () => { this.pendingOperation.set(null); this.message.set('Perfil associado no mock.'); this.openDetails(this.detail()!.record); }, error: (error: HttpErrorResponse) => { this.pendingOperation.set(null); this.showError(error, 'Não foi possível associar o perfil.'); } });
+    this.api.assignUserProfile(id, profileId).subscribe({ next: () => { this.pendingOperation.set(null); this.message.set(`Perfil associado ${this.operationSource()}.`); this.openDetails(this.detail()!.record); }, error: (error: HttpErrorResponse) => { this.pendingOperation.set(null); this.showError(error, 'Não foi possível associar o perfil.'); } });
   }
   protected revokeUserProfile(profile: ApiRecord): void {
     const id = String(this.detail()?.record['id'] ?? ''); const profileId = this.rowId(profile); if (!id || !profileId || this.pendingOperation()) return;
     this.pendingOperation.set('revoke-profile');
-    this.api.revokeUserProfile(id, profileId).subscribe({ next: () => { this.pendingOperation.set(null); this.message.set('Perfil revogado no mock.'); this.openDetails(this.detail()!.record); }, error: (error: HttpErrorResponse) => { this.pendingOperation.set(null); this.showError(error, 'Não foi possível revogar o perfil.'); } });
+    this.api.revokeUserProfile(id, profileId).subscribe({ next: () => { this.pendingOperation.set(null); this.message.set(`Perfil revogado ${this.operationSource()}.`); this.openDetails(this.detail()!.record); }, error: (error: HttpErrorResponse) => { this.pendingOperation.set(null); this.showError(error, 'Não foi possível revogar o perfil.'); } });
   }
   protected assignProfilePermission(): void {
     const id = String(this.detail()?.record['id'] ?? ''); const permissionId = this.selectedPermissionId(); if (!id || !permissionId || this.pendingOperation()) return;
     this.pendingOperation.set('assign-permission');
-    this.api.assignProfilePermission(id, permissionId).subscribe({ next: () => { this.pendingOperation.set(null); this.message.set('Permissão associada no mock.'); this.openDetails(this.detail()!.record); }, error: (error: HttpErrorResponse) => { this.pendingOperation.set(null); this.showError(error, 'Não foi possível associar a permissão.'); } });
+    this.api.assignProfilePermission(id, permissionId).subscribe({ next: () => { this.pendingOperation.set(null); this.message.set(`Permissão associada ${this.operationSource()}.`); this.openDetails(this.detail()!.record); }, error: (error: HttpErrorResponse) => { this.pendingOperation.set(null); this.showError(error, 'Não foi possível associar a permissão.'); } });
   }
   protected revokeProfilePermission(permission: ApiRecord): void {
     const id = String(this.detail()?.record['id'] ?? ''); const permissionId = this.rowId(permission); if (!id || !permissionId || this.pendingOperation()) return;
     this.pendingOperation.set('revoke-permission');
-    this.api.revokeProfilePermission(id, permissionId).subscribe({ next: () => { this.pendingOperation.set(null); this.message.set('Permissão revogada no mock.'); this.openDetails(this.detail()!.record); }, error: (error: HttpErrorResponse) => { this.pendingOperation.set(null); this.showError(error, 'Não foi possível revogar a permissão.'); } });
+    this.api.revokeProfilePermission(id, permissionId).subscribe({ next: () => { this.pendingOperation.set(null); this.message.set(`Permissão revogada ${this.operationSource()}.`); this.openDetails(this.detail()!.record); }, error: (error: HttpErrorResponse) => { this.pendingOperation.set(null); this.showError(error, 'Não foi possível revogar a permissão.'); } });
   }
   protected hasProfile(profile: ApiRecord): boolean { return this.userProfiles().some((item) => this.rowId(item) === this.rowId(profile)); }
   protected hasPermission(permission: ApiRecord): boolean { return this.profilePermissions().some((item) => this.rowId(item) === this.rowId(permission)); }
   protected availableProfilesToAssign(): ApiRecord[] { return this.availableProfiles().filter((item) => item['status'] === 'ativo' && !this.hasProfile(item)); }
   protected availablePermissionsToAssign(): ApiRecord[] { return this.availablePermissions().filter((item) => item['status'] === 'ativo' && !this.hasPermission(item)); }
+  private operationSource(): string { return this.session()?.coreMode === 'api' ? 'na API ANI' : 'no mock'; }
   protected editorTitle(): string { const state = this.editor(); return `${state?.id ? 'Editar' : 'Novo cadastro'} · ${navigation.find((item) => item.id === state?.resource)?.label ?? ''}`; }
   protected statusOptions(): { value: string; label: string }[] { return this.editor()?.resource === 'usuarios' ? [{ value: 'ativo', label: 'Ativo' }, { value: 'inativo', label: 'Inativo' }, { value: 'pendente', label: 'Pendente' }] : [{ value: 'ativo', label: 'Ativo' }, { value: 'inativo', label: 'Inativo' }]; }
   protected statusFilterOptions(): { value: string; label: string }[] {
+    if (this.section() === 'sistemas') return [{ value: 'ativo', label: 'Ativo' }, { value: 'inativo', label: 'Inativo' }];
     if (this.section() === 'solicitacoes-cadastro') return [{ value: 'pending', label: 'Pendente' }, { value: 'approved', label: 'Aprovada' }, { value: 'rejected', label: 'Rejeitada' }];
     if (this.section() === 'auditoria') return [{ value: 'sucesso', label: 'Sucesso' }, { value: 'negado', label: 'Negado' }];
     if (this.isMaintainedResource(this.section())) return [{ value: 'ativo', label: 'Ativo' }, { value: 'inativo', label: 'Inativo' }];
@@ -364,7 +384,7 @@ export class App implements OnInit {
   }
   protected canDecide(): boolean { return this.session()?.capabilities.includes('requests.approve') ?? false; }
   protected isRequest(): boolean { return this.section() === 'solicitacoes-cadastro'; }
-  protected isMaintainedResource(section: Section): section is MaintainedResource { return section === 'usuarios' || section === 'portais' || section === 'perfis' || section === 'permissoes'; }
+  protected isMaintainedResource(section: Section): section is MaintainedResource { return section === 'usuarios' || section === 'sistemas' || section === 'perfis' || section === 'permissoes'; }
   protected statusLabel(value: unknown): string { const labels: Record<string, string> = { ativo: 'Ativo', inativo: 'Inativo', pendente: 'Pendente', aprovada: 'Aprovada', rejeitada: 'Rejeitada', pending: 'Pendente', approved: 'Aprovada', rejected: 'Rejeitada', sucesso: 'Sucesso', negado: 'Negado' }; return labels[String(value ?? '')] ?? this.value(value); }
   protected statusClass(value: unknown): string { const normalized = String(value ?? '').toLocaleLowerCase('pt-BR'); return ['ativo', 'aprovada', 'approved', 'sucesso'].includes(normalized) ? 'positive' : ['inativo', 'rejeitada', 'rejected', 'negado'].includes(normalized) ? 'negative' : 'pending'; }
   protected downloadCsv(): void {
@@ -378,6 +398,8 @@ export class App implements OnInit {
     const url = URL.createObjectURL(new Blob(['\uFEFF', content], { type: 'text/csv;charset=utf-8' })); const anchor = document.createElement('a'); anchor.href = url; anchor.download = `ani-${this.section().replaceAll('/','-')}${this.listIsMock()?'-dados-sinteticos':''}-pagina-${this.page()}.csv`; anchor.click(); URL.revokeObjectURL(url);
   }
   protected get recordCountLabel(): string { if(this.loading())return 'Carregando registros…';if(this.listFailed())return 'Consulta não concluída';const total = this.total(); return `${total} ${total === 1 ? 'registro encontrado' : 'registros encontrados'}`; }
+
+  protected handleSessionExpired(): void { this.clearLocalSession('Sua sessão expirou. Entre novamente para continuar.'); }
 
   private prepareModal(): void {
     if (!this.modalReturnFocus && document.activeElement instanceof HTMLElement) this.modalReturnFocus = document.activeElement;
@@ -395,7 +417,14 @@ export class App implements OnInit {
   }
 
   private refreshPendingCount(): void { if (this.session()?.coreMode === 'api') return; this.api.list('solicitacoes-cadastro', { page: 1, pageSize: 100, status: 'pending' }).subscribe({ next: (result) => this.pendingCount.set(result.total ?? result.items.length), error: () => this.pendingCount.set(0) }); }
-  private loadSystems(): void { this.api.list('portais', { page: 1, pageSize: 100, status: 'ativo' }).subscribe({ next: (result) => this.systems.set(result.items ?? []), error: () => this.systems.set([]) }); }
+  private loadSystems(): void {
+    this.systemsLoading.set(true);
+    this.systemsError.set('');
+    this.api.list('sistemas', { page: 1, pageSize: 100, status: 'ativo' }).subscribe({
+      next: (result) => { this.systems.set(result.items ?? []); this.systemsLoading.set(false); },
+      error: (error: HttpErrorResponse) => { this.systems.set([]); this.systemsLoading.set(false); this.systemsError.set(this.errorMessage(error, 'Não foi possível carregar o catálogo de sistemas.')); },
+    });
+  }
   private capabilityFor(section: Section): string {
     if (section === 'solicitacoes-cadastro') return 'requests.read';
     if (section === 'usuarios') return 'users.read';
@@ -424,6 +453,7 @@ export class App implements OnInit {
     if (error.status === 404) return 'O registro solicitado não foi encontrado.';
     if (error.status === 501) return 'Esta funcionalidade ainda não está disponível na API.';
     if (error.status === 409) return 'O registro mudou ou já foi processado. Atualize a tela e tente novamente.';
+    if (error.status === 429) return 'Muitas tentativas. Aguarde antes de tentar novamente.';
     if (error.status === 400 || error.status === 422) return typeof error.error?.title === 'string' ? error.error.title : 'Revise os dados informados.';
     return fallback;
   }

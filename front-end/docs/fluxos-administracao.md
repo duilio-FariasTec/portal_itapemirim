@@ -2,6 +2,20 @@
 
 **Estado:** mapa funcional inicial e wireframes em discussão. Os exemplos usam nomes fictícios. A matriz de autorização, campos, status e APIs administrativas ainda precisam de aprovação.
 
+## Implementação atual — 2026-11-01
+
+As propostas abaixo não substituem o fluxo executável descrito no [README](../README.md):
+
+1. Preparar sistema, perfil ativo daquele sistema e permissões associadas.
+2. Em Usuários → Novo cadastro, informar nome, e-mail, login e status. O BFF atual define a senha inicial por primeiro nome em minúsculas + `1234`; regra previsível, sem garantia de troca obrigatória e não aprovada para produção.
+3. Abrir o detalhe do usuário e usar **Atribuir acesso** para associar o perfil. Cadastro não concede acesso automaticamente.
+4. Homologar login com a conta ativa; em caso de recusa, confirmar dados gravados e regras de credenciais no Core. Não concluir que falta de perfil é a causa de um 401.
+5. Em Meu Perfil, consultar **Meus dados**, **Acessos** e **Trocar senha**. A troca é encaminhada à API com identidade da própria sessão.
+
+Novo cadastro/Editar de Sistemas, Perfis e Permissões exigem `catalog.write`; Usuários exige `users.write`. O perfil Administrador concede navegação e consultas no BFF atual, não todas as escritas. Acesso total de administrador global foi solicitado, mas permanece pendente de definição de escopo e códigos no Core. Nenhuma mudança de autorização integra esta entrega.
+
+CRUD de sistemas e vínculos de perfis/permissões já têm adaptação local. Solicitações/aprovações reais continuam sem endpoint; relatórios são demonstrativos explícitos. A inativação da UI integrada permanece bloqueada até confirmar a semântica de DELETE. As tabelas seguintes são o levantamento inicial, não a cobertura atual homologada.
+
 ## Princípios do modelo
 
 - Uma pessoa possui uma identidade ANI e um único conjunto de credenciais.

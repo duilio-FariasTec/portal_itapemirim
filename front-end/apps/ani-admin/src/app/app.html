@@ -46,7 +46,7 @@
     <main class="workspace">
       <header class="topbar">
         <div class="topbar-title"><button type="button" class="mobile-nav-toggle" aria-label="Abrir menu" aria-controls="admin-navigation" [attr.aria-expanded]="mobileNavOpen()" (click)="toggleMobileNavigation()"><span></span><span></span><span></span></button><div><span class="breadcrumb">ANI / Administração</span><h1>{{ title }}</h1></div></div>
-        <div class="user-menu"><span class="avatar">{{ session()?.user?.displayName?.slice(0, 1) }}</span><div><b>{{ session()?.user?.displayName }}</b><small>{{ session()?.user?.profileLabel }}</small></div><button class="button subtle" [disabled]="signingOut()" (click)="signOut()">{{ signingOut() ? 'Saindo…' : 'Sair' }}</button></div>
+        <div class="user-menu"><button type="button" class="avatar" (click)="select('meu-perfil')" [attr.aria-label]="'Abrir Meu Perfil de ' + (session()?.user?.displayName ?? 'usuário')" title="Meu Perfil">{{ session()?.user?.displayName?.slice(0, 1) }}</button><div><b>{{ session()?.user?.displayName }}</b><small>{{ session()?.user?.profileLabel }}</small></div><button class="button subtle" [disabled]="signingOut()" (click)="signOut()">{{ signingOut() ? 'Saindo…' : 'Sair' }}</button></div>
       </header>
       <section class="content">
         @if (message()) { <div class="feedback" role="status" aria-live="polite">{{ message() }}<button type="button" class="feedback-close" aria-label="Fechar mensagem" (click)="message.set('')">×</button></div> }
@@ -60,6 +60,8 @@
             @if (canNavigate('auditoria')) { <button class="metric" (click)="select('auditoria')"><span>Trilha de auditoria</span><strong>Abrir lista</strong><small>Consultar registros →</small></button> }
           </div>
           @if (session()?.coreMode === 'api') { <div class="notice"><b>Integração com API</b><span>As informações são consultadas no Core. Recursos ainda não publicados retornam indisponibilidade.</span></div> } @else { <div class="notice mock-note"><b>Dados de demonstração</b><span>As informações desta execução são sintéticas e ficam apenas na memória do mock local.</span></div> }
+        } @else if (section() === 'meu-perfil') {
+          <ani-meu-perfil [user]="session()?.user ?? null" [source]="session()?.coreMode === 'api' ? 'api' : 'mock'" [writesEnabled]="session()?.writesEnabled ?? false" (sessionExpired)="handleSessionExpired()" />
         } @else {
           <div class="section-heading">
             <div><p class="eyebrow">{{ isRequest() ? 'ANÁLISE E DECISÃO' : isReadOnly ? 'CONSULTA E GOVERNANÇA' : 'CADASTRO E MANUTENÇÃO' }}</p><h2>{{ title }}</h2><p>{{ recordCountLabel }} · {{ listIsMock() ? 'Dados sintéticos de demonstração.' : session()?.coreMode === 'api' ? 'Dados recebidos pela API via BFF.' : 'Dados recebidos pelo BFF mock local.' }}</p></div>
@@ -73,22 +75,26 @@
           @if (!allowed) { <div class="empty"><b>Acesso não concedido</b><span>Seu perfil não possui capacidade para consultar esta área.</span></div> }
           @else {
             <form class="filter-bar" (ngSubmit)="applyFilters()">
-              <label class="search-field"><span>Buscar</span><input type="search" name="search" placeholder="Nome, e-mail, sistema ou recurso" [ngModel]="searchInput()" (ngModelChange)="searchInput.set($event)" /></label>
+              @if (section() !== 'auditoria') { <label class="search-field"><span>Buscar</span><input type="search" name="search" placeholder="Nome, e-mail, sistema ou recurso" [ngModel]="searchInput()" (ngModelChange)="searchInput.set($event)" /></label> }
               @if (statusFilterOptions().length) {
-                <label class="status-field"><span>Status</span><select name="status" [ngModel]="statusInput()" (ngModelChange)="statusInput.set($event)"><option value="">Todos</option>@for (option of statusFilterOptions(); track option.value) { <option [value]="option.value">{{ option.label }}</option> }</select></label>
+                <label class="status-field"><span>{{ section() === 'auditoria' ? 'Resultado' : 'Status' }}</span><select name="status" [ngModel]="statusInput()" (ngModelChange)="statusInput.set($event)"><option value="">Todos</option>@for (option of statusFilterOptions(); track option.value) { <option [value]="option.value">{{ option.label }}</option> }</select></label>
+              }
+              @if (section() === 'perfis') {
+                <label class="status-field"><span>Sistema</span><select name="sistemaId" [ngModel]="systemInput()" (ngModelChange)="systemInput.set($event)" [disabled]="systemsLoading()"><option value="">Todos os sistemas</option>@for (system of systems(); track system['id']) { <option [value]="system['id']">{{ system['nome'] }}</option> }</select></label>
               }
               <button class="button primary" type="submit">Aplicar filtros</button><button class="button" type="button" (click)="clearFilters()">Limpar</button>
             </form>
+            @if (section() === 'perfis' && systemsError()) { <p class="field-error" role="alert">{{ systemsError() }}</p> }
             @if (loading()) { <div class="empty" aria-live="polite"><span class="spinner" aria-hidden="true"></span><b>Carregando dados…</b></div> }
             @else if (listFailed()) { <div class="empty" role="status"><b>Consulta não concluída</b><span>Não foi possível verificar os registros. Tente carregar a lista novamente.</span><button class="button" (click)="loadSection()">Tentar novamente</button></div> }
-            @else if (rows().length === 0) { <div class="empty"><b>Nenhum registro encontrado</b><span>{{ appliedSearch() || appliedStatus() ? 'Altere ou limpe os filtros para tentar novamente.' : 'Ainda não há registros disponíveis nesta lista.' }}</span>@if (canManageCurrent) { <button class="button" (click)="createRecord()">Criar primeiro cadastro</button> }</div> }
+            @else if (rows().length === 0) { <div class="empty"><b>Nenhum registro encontrado</b><span>{{ appliedSearch() || appliedStatus() || appliedSystem() ? 'Altere ou limpe os filtros para tentar novamente.' : 'Ainda não há registros disponíveis nesta lista.' }}</span>@if (canManageCurrent) { <button class="button" (click)="createRecord()">Criar primeiro cadastro</button> }</div> }
             @else {
               <div class="table-wrap" role="region" aria-label="Tabela de resultados; pode ser rolada horizontalmente" tabindex="0"><table><thead><tr>@for (key of visibleColumns(); track key) { <th scope="col">{{ formatKey(key) }}</th> }<th scope="col" class="actions-heading">Ações</th></tr></thead><tbody>
                 @for (row of rows(); track row['id']) {
                   <tr>@for (key of visibleColumns(); track key) { <td>@if (key === 'status' || key === 'resultado') { <span class="status-badge" [class]="'status-badge ' + statusClass(row[key])">{{ statusLabel(row[key]) }}</span> } @else { {{ value(row[key], key) }} }</td> }
                     <td class="actions"><button class="button compact" (click)="openDetails(row)">Detalhes</button>
                       @if (canManageCurrent) {
-                        @if (row['status'] !== 'inativo') { <button class="button compact" (click)="editRecord(row)">Editar</button><button class="button compact danger" (click)="requestDeactivate(row)">Inativar</button> }
+                        @if (row['status'] !== 'inativo') { <button class="button compact" (click)="editRecord(row)">Editar</button>@if (canDeactivateCurrent) { <button class="button compact danger" (click)="requestDeactivate(row)">Inativar</button> } }
                       }
                       @if (isRequest() && canDecide() && row['status'] === 'pending') { <button class="button compact primary" [disabled]="pendingOperation() !== null" (click)="openDecision(rowId(row), 'aprovar')">Aprovar</button><button class="button compact danger" [disabled]="pendingOperation() !== null" (click)="openDecision(rowId(row), 'rejeitar')">Rejeitar</button> }
                     </td>
@@ -101,7 +107,7 @@
                     <h3>{{ rowLabel(row) }}</h3>
                     <dl>@for (key of visibleColumns(); track key) { @if (key !== 'nome') { <div><dt>{{ formatKey(key) }}</dt><dd>@if (key === 'status' || key === 'resultado') { <span class="status-badge" [class]="'status-badge ' + statusClass(row[key])">{{ statusLabel(row[key]) }}</span> } @else { {{ value(row[key], key) }} }</dd></div> } }</dl>
                     <div class="record-actions"><button class="button compact" (click)="openDetails(row)">Detalhes</button>
-                      @if (canManageCurrent && row['status'] !== 'inativo') { <button class="button compact" (click)="editRecord(row)">Editar</button><button class="button compact danger" (click)="requestDeactivate(row)">Inativar</button> }
+                      @if (canManageCurrent && row['status'] !== 'inativo') { <button class="button compact" (click)="editRecord(row)">Editar</button>@if (canDeactivateCurrent) { <button class="button compact danger" (click)="requestDeactivate(row)">Inativar</button> } }
                       @if (isRequest() && canDecide() && row['status'] === 'pending') { <button class="button compact primary" [disabled]="pendingOperation() !== null" (click)="openDecision(rowId(row), 'aprovar')">Aprovar</button><button class="button compact danger" [disabled]="pendingOperation() !== null" (click)="openDecision(rowId(row), 'rejeitar')">Rejeitar</button> }
                     </div>
                   </article>
@@ -126,12 +132,13 @@
           <div class="form-field"><label [for]="'field-' + field.key">{{ field.label }} @if (field.required) { <span>*</span> }</label>
             @switch (field.type) {
               @case ('status') { <select [id]="'field-' + field.key" [name]="field.key" [attr.autofocus]="$first ? '' : null" [ngModel]="form.values[field.key]" (ngModelChange)="setEditorValue(field.key, $event)">@for (option of statusOptions(); track option.value) { <option [value]="option.value">{{ option.label }}</option> }</select> }
-              @case ('system') { <select [id]="'field-' + field.key" [name]="field.key" [attr.autofocus]="$first ? '' : null" [ngModel]="form.values[field.key]" (ngModelChange)="setEditorValue(field.key, $event)" required><option value="">Selecione um sistema</option>@for (system of systems(); track system['id']) { <option [value]="system['id']">{{ system['nome'] }}</option> }</select> }
+              @case ('system') { <select [id]="'field-' + field.key" [name]="field.key" [attr.autofocus]="$first ? '' : null" [ngModel]="form.values[field.key]" (ngModelChange)="setEditorValue(field.key, $event)" [disabled]="systemsLoading()" required><option value="">Selecione um sistema</option>@for (system of systems(); track system['id']) { <option [value]="system['id']">{{ system['nome'] }}</option> }</select> }
               @default { <input [id]="'field-' + field.key" [name]="field.key" [type]="field.type === 'email' ? 'email' : 'text'" [attr.autofocus]="$first ? '' : null" [required]="field.required ?? false" [ngModel]="form.values[field.key]" (ngModelChange)="setEditorValue(field.key, $event)" /> }
             }
             @if (field.hint) { <small>{{ field.hint }}</small> }
           </div>
         }
+        @if (systemsError()) { <p class="field-error" role="alert">{{ systemsError() }}</p> }
         @if (editorError()) { <p class="field-error" role="alert">{{ editorError() }}</p> }
         <footer class="modal-actions"><button type="button" class="button" [disabled]="saving()" (click)="closeEditor()">Cancelar</button><button class="button primary" type="submit" [disabled]="saving()">{{ saving() ? 'Salvando…' : 'Salvar cadastro' }}</button></footer>
       </form>

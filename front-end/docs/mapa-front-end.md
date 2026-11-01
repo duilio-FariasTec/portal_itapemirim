@@ -1,6 +1,16 @@
 # Mapa de front-ends — ANI
 
-**Entendimento atual:** o ANI tem duas experiências com públicos e funções diferentes. A recomendação de arquitetura continua sendo um provedor confiável via OIDC redirect; `ani-admin` é o portal Angular separado para manter cadastros, aprovações, perfis, permissões e auditoria. Cognito ainda depende de aprovação. **Protótipo visual atual:** `ani-login` mostra campos de login/senha e uma caixa antirobô para explorar a experiência básica, mas não autentica nem envia senha. Essa tela não aprova uma arquitetura de credencial própria nem substitui a definição do provedor.
+## Estado executável — 2026-11-01
+
+- `ani-login`: login por credenciais via BFF, sessão, recuperação e cadastro público direto opt-in. O cadastro público usa e-mail como login e não atribui perfil; sua aceitação pelo Core precisa de homologação.
+- `ani-admin`: shell administrativo e componente standalone `features/meu-perfil`, com abas Meus dados, Acessos e Trocar senha. O avatar da barra superior abre Meu Perfil inclusive no celular.
+- `MY_ACCOUNT_API` é a porta injetável de dados do componente. O shell fornece o adaptador HTTP; o componente usa estilos locais/tokens e container queries. Reutilização em outros consumidores ainda exige integração e controles próprios.
+- GET `/me` e `/me/acessos` usam somente a identidade da sessão. Troca de senha passa pelo BFF até a API, mas não foi homologada como jornada remota completa.
+- Administrador tem leitura/navegação; escritas exigem capacidades explícitas e flag. Acesso total foi solicitado e permanece pendente, sem mudança de código nesta entrega.
+
+Os diagramas OIDC/Cognito abaixo são propostas. As descrições mock-only são históricas; consulte [README](../README.md) e [continuidade](continuidade-2026-11-01.md) para execução e verificações atuais.
+
+**Entendimento atual:** o ANI tem duas experiências com públicos e funções diferentes. A recomendação de arquitetura continua sendo um provedor confiável via OIDC redirect; `ani-admin` é o portal Angular separado para manter cadastros, aprovações, perfis, permissões e auditoria. Cognito ainda depende de aprovação. A implementação local de `ani-login` inclui login via BFF e encaminha recuperação ao endpoint Core `POST /api/v1/auth/reset-senha`, com proteção CSRF e resposta genérica. O usuário confirmou em 2026-11-01 que esse endpoint foi publicado na AWS. O Core mock local não envia e-mails nem gera senhas temporárias. Esse fluxo não aprova uma arquitetura de credencial própria nem substitui a definição do provedor.
 
 **Implementação local atualizada em 2026-10-31:** o workspace `front-end/` contém os dois apps Angular, BFF local e Core/IdP mocks com dados sintéticos. A solicitação de acesso funciona até o Core mock e apresenta protocolo. A administração funciona contra os dados sintéticos. A UI está responsiva em desktop/celular; no Admin, o menu móvel substitui a sidebar e as tabelas viram cartões em telas estreitas. Isso demonstra UX e contratos candidatos, não a API C# ou autenticação reais. Veja [prontidão V1](prontidao-v1.md) e [continuidade para 2026-11-01](continuidade-2026-11-01.md).
 
@@ -93,9 +103,9 @@ Esta sequência é modelo de referência. Com Cognito, endpoints OIDC, autentica
 
 | Tela | Rotas ANI Core candidatas |
 |---|---|
-| Solicitação de cadastro | `POST /api/v1/solicitacoes-cadastro` |
-| Fila de aprovação | `GET /api/v1/solicitacoes-cadastro`, `GET /api/v1/solicitacoes-cadastro/{id}` |
-| Aprovar/rejeitar | `POST /api/v1/solicitacoes-cadastro/{id}/aprovar`, `POST /api/v1/solicitacoes-cadastro/{id}/rejeitar` |
+| Cadastro público direto | `POST /api/v1/usuarios` (opt-in no BFF; e-mail também é login, senha informada no formulário, sem sistema/perfil/status) |
+| Fila de aprovação | Sem endpoint no OpenAPI recebido; não disponível na integração Core |
+| Aprovar/rejeitar | Sem endpoint no OpenAPI recebido; não disponível na integração Core |
 | Usuários | `GET/POST /api/v1/usuarios`, `GET/PUT/DELETE /api/v1/usuarios/{id}` |
 | Perfis do usuário | `GET /api/v1/usuarios/{id}/perfis`, `POST /api/v1/usuarios/{id}/perfis`, `DELETE /api/v1/usuarios/{id}/perfis/{perfilId}` |
 | Permissões efetivas | `GET /api/v1/usuarios/{id}/permissoes-efetivas` |

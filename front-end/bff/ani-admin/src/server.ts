@@ -38,6 +38,7 @@ export function resolveApiRoute(method: string, path: string): RouteRule | undef
     '/usuarios': { GET: { capability: 'users.read' }, POST: { capability: 'users.write' } },
     // Public metadata needed by the unauthenticated request form in this local mock.
     '/portais': { GET: { public: true }, POST: { capability: 'catalog.write' } },
+    '/sistemas': { GET: { public: true }, POST: { capability: 'catalog.write' } },
     '/perfis': { GET: { capability: 'catalog.read' }, POST: { capability: 'catalog.write' } },
     '/permissoes': { GET: { capability: 'catalog.read' }, POST: { capability: 'catalog.write' } },
     '/auditoria': { GET: { capability: 'audit.read' } },
@@ -55,8 +56,11 @@ export function resolveApiRoute(method: string, path: string): RouteRule | undef
   if (normalizedMethod === 'POST' && /^\/usuarios\/[a-zA-Z0-9-]+\/perfis$/.test(path)) return { capability: 'users.write' };
   if (normalizedMethod === 'DELETE' && /^\/usuarios\/[a-zA-Z0-9-]+\/perfis\/[a-zA-Z0-9-]+$/.test(path)) return { capability: 'users.write' };
   if (normalizedMethod === 'GET' && /^\/auditoria\/[a-zA-Z0-9-]+$/.test(path)) return { capability: 'audit.read' };
-  if (normalizedMethod === 'GET' && /^\/(?:portais|perfis|permissoes)\/[a-zA-Z0-9-]+$/.test(path)) return { capability: 'catalog.read' };
+  if (normalizedMethod === 'GET' && /^\/(?:portais|perfis|permissoes|sistemas)\/[a-zA-Z0-9-]+$/.test(path)) return { capability: 'catalog.read' };
+  if (normalizedMethod === 'GET' && /^\/sistemas\/(?:[a-zA-Z0-9-]+|codigo\/[A-Za-z0-9_-]+)$/.test(path)) return { capability: 'catalog.read' };
   if (['PUT', 'PATCH', 'DELETE'].includes(normalizedMethod) && /^\/(?:portais|perfis|permissoes)\/[a-zA-Z0-9-]+$/.test(path)) return { capability: 'catalog.write' };
+  if (['PUT', 'PATCH', 'DELETE'].includes(normalizedMethod) && /^\/sistemas\/[a-zA-Z0-9-]+$/.test(path)) return { capability: 'catalog.write' };
+  if (normalizedMethod === 'POST' && path === '/sistemas') return { capability: 'catalog.write' };
   if (normalizedMethod === 'GET' && /^\/perfis\/[a-zA-Z0-9-]+\/permissoes$/.test(path)) return { capability: 'catalog.read' };
   if (normalizedMethod === 'POST' && /^\/perfis\/[a-zA-Z0-9-]+\/permissoes$/.test(path)) return { capability: 'catalog.write' };
   if (normalizedMethod === 'DELETE' && /^\/perfis\/[a-zA-Z0-9-]+\/permissoes\/[a-zA-Z0-9-]+$/.test(path)) return { capability: 'catalog.write' };

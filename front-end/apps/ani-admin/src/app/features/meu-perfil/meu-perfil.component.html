@@ -1,0 +1,149 @@
+<section class="account" aria-labelledby="perfil-titulo">
+  <header class="account-hero">
+    <span class="account-avatar" aria-hidden="true">{{ initials() }}</span>
+    <div class="account-identity">
+      <p class="account-eyebrow">MINHA CONTA</p>
+      <h2 id="perfil-titulo">{{ displayName() }}</h2>
+      @if (text(profile()?.['login']) || text(profile()?.['email'])) {
+        <p class="account-meta">
+          @if (text(profile()?.['login'])) { <span>{{ profile()?.['login'] }}</span> }
+          @if (text(profile()?.['email'])) { <span>{{ profile()?.['email'] }}</span> }
+        </p>
+      }
+      <div class="account-tags">
+        @if (status()) { <span class="badge" [class]="statusTone(status())">{{ statusLabel(status()) }}</span> }
+        @if (user()?.profileLabel) { <span class="badge">{{ user()?.profileLabel }}</span> }
+        @if (source() !== 'api') { <span class="badge pending">Demonstração</span> }
+      </div>
+    </div>
+    <div class="account-actions">
+      <button type="button" class="acc-button" (click)="reload()" [disabled]="profileState() === 'loading' || accessState() === 'loading'">{{ profileState() === 'loading' || accessState() === 'loading' ? 'Atualizando…' : 'Atualizar' }}</button>
+      <button type="button" class="acc-button" (click)="openPassword()">Trocar senha</button>
+    </div>
+  </header>
+
+  <div class="account-tabs" role="tablist" aria-label="Seções do perfil" (keydown)="handleTabKeydown($event)">
+    @for (tab of tabs; track tab.id) {
+      <button type="button" role="tab" class="account-tab" [id]="'perfil-tab-' + tab.id" [attr.aria-selected]="activeTab() === tab.id" [attr.aria-controls]="'perfil-painel-' + tab.id" [tabIndex]="activeTab() === tab.id ? 0 : -1" (click)="selectTab(tab.id)">
+        {{ tab.label }}@if (tabBadge(tab.id); as badge) { <span class="tab-badge">{{ badge }}</span> }
+      </button>
+    }
+  </div>
+
+  <div role="tabpanel" id="perfil-painel-dados" aria-labelledby="perfil-tab-dados" tabindex="0" class="account-panel" [hidden]="activeTab() !== 'dados'">
+    @switch (profileState()) {
+      @case ('loading') { <div class="account-state" role="status"><span class="spinner" aria-hidden="true"></span><b>Carregando seus dados…</b></div> }
+      @case ('error') { <div class="account-state"><b>Não foi possível carregar seus dados</b><span>Verifique a conexão e tente novamente.</span><button type="button" class="acc-button" (click)="reload()">Tentar novamente</button></div> }
+      @default {
+        <div class="account-cards">
+          <section class="account-card" aria-labelledby="perfil-identificacao">
+            <h3 id="perfil-identificacao">Identificação</h3>
+            <dl class="account-fields">
+              <div><dt>Nome completo</dt><dd>{{ value(profile()?.['nome']) }}</dd></div>
+              <div><dt>Login</dt><dd>{{ value(profile()?.['login']) }}</dd></div>
+              <div><dt>E-mail</dt><dd>{{ value(profile()?.['email']) }}</dd></div>
+            </dl>
+          </section>
+          <section class="account-card" aria-labelledby="perfil-conta">
+            <h3 id="perfil-conta">Conta</h3>
+            <dl class="account-fields">
+              <div><dt>Status</dt><dd>@if (status()) { <span class="badge" [class]="statusTone(status())">{{ statusLabel(status()) }}</span> } @else { — }</dd></div>
+              <div><dt>Perfil de acesso</dt><dd>{{ value(user()?.profileLabel) }}</dd></div>
+              <div><dt>Identificador</dt><dd class="account-id"><code>{{ value(profile()?.['id']) }}</code>@if (text(profile()?.['id'])) { <button type="button" class="acc-button compact" (click)="copyIdentifier()" [attr.aria-label]="copied() ? 'Identificador copiado' : 'Copiar identificador'">{{ copied() ? 'Copiado' : 'Copiar' }}</button> }</dd></div>
+              @if (text(profile()?.['criadoEm']) || text(profile()?.['criadoEmUtc'])) { <div><dt>Cadastrado em</dt><dd>{{ date(profile()?.['criadoEm'] ?? profile()?.['criadoEmUtc']) }}</dd></div> }
+              @if (text(profile()?.['atualizadoEmUtc'])) { <div><dt>Última atualização</dt><dd>{{ date(profile()?.['atualizadoEmUtc']) }}</dd></div> }
+            </dl>
+          </section>
+        </div>
+        <p class="account-hint">Estes dados são somente leitura nesta tela.@if (source() !== 'api') { Na demonstração, apenas a identidade da sessão é exibida. }</p>
+      }
+    }
+  </div>
+
+  <div role="tabpanel" id="perfil-painel-acessos" aria-labelledby="perfil-tab-acessos" tabindex="0" class="account-panel" [hidden]="activeTab() !== 'acessos'">
+    @switch (accessState()) {
+      @case ('loading') { <div class="account-state" role="status"><span class="spinner" aria-hidden="true"></span><b>Carregando seus acessos…</b></div> }
+      @case ('error') { <div class="account-state"><b>Não foi possível carregar seus acessos</b><span>Verifique a conexão e tente novamente.</span><button type="button" class="acc-button" (click)="reload()">Tentar novamente</button></div> }
+      @default {
+        @if (access()?.origem === 'sessao') {
+          <p class="account-note">{{ source() === 'api' ? 'Resumo confirmado no seu login. O detalhamento por sistema não está disponível para o seu perfil.' : 'Resumo da sessão de demonstração.' }}</p>
+        }
+        <section class="account-card" aria-labelledby="perfil-perfis">
+          <header class="account-card-header"><h3 id="perfil-perfis">Perfis atribuídos</h3><span class="count">{{ access()?.perfis?.length ?? 0 }}</span></header>
+          @if (access()?.perfis?.length) {
+            <ul class="profile-list">
+              @for (item of access()?.perfis ?? []; track $index) {
+                <li><span><b>{{ value(item['nome']) }}</b>@if (text(item['sistemaNome'])) { <small>{{ item['sistemaNome'] }}</small> }</span>@if (text(item['status'])) { <span class="badge" [class]="statusTone(item['status'])">{{ statusLabel(item['status']) }}</span> }</li>
+              }
+            </ul>
+          } @else { <p class="account-empty">Nenhum perfil atribuído à sua conta.</p> }
+        </section>
+        <section class="account-card" aria-labelledby="perfil-permissoes">
+          <header class="account-card-header">
+            <h3 id="perfil-permissoes">Permissões efetivas</h3><span class="count">{{ access()?.permissoes?.length ?? 0 }}</span>
+            @if ((access()?.permissoes?.length ?? 0) > 6) {
+              <input class="account-filter" type="search" aria-label="Filtrar permissões" placeholder="Filtrar permissões" maxlength="100" [value]="permissionFilter()" (input)="permissionFilter.set($any($event.target).value)" />
+            }
+          </header>
+          @if (!access()?.permissoes?.length) {
+            <p class="account-empty">{{ source() === 'api' ? 'Nenhuma permissão efetiva encontrada.' : 'Permissões não são detalhadas na demonstração.' }}</p>
+          } @else if (!permissionGroups().length) {
+            <p class="account-empty">Nenhuma permissão corresponde ao filtro.</p>
+          } @else {
+            @for (group of permissionGroups(); track group.name) {
+              <div class="permission-group">
+                <h4>{{ group.name }}</h4>
+                <ul class="permission-list">
+                  @for (permission of group.items; track $index) { <li><b>{{ value(permission['nome'] ?? permission['codigo']) }}</b>@if (permissionDetail(permission) && permissionDetail(permission) !== text(permission['nome'])) { <small>{{ permissionDetail(permission) }}</small> }</li> }
+                </ul>
+              </div>
+            }
+          }
+        </section>
+      }
+    }
+  </div>
+
+  <div role="tabpanel" id="perfil-painel-senha" aria-labelledby="perfil-tab-senha" tabindex="0" class="account-panel" [hidden]="activeTab() !== 'senha'">
+    @if (!passwordAvailable()) {
+      <div class="account-state locked"><b>Troca de senha indisponível</b><span>{{ passwordUnavailableReason() }}</span></div>
+    } @else {
+      <form class="account-card password-form" (submit)="$event.preventDefault(); changePassword()" novalidate>
+        <header><h3>Trocar senha</h3><p>Informe sua senha atual e escolha uma nova. A política de senha é validada pela API ANI.</p></header>
+        <input class="visually-hidden" type="text" name="username" autocomplete="username" tabindex="-1" aria-hidden="true" readonly [value]="text(profile()?.['login'])" />
+        <div class="password-field">
+          <label for="perfil-senha-atual">Senha atual</label>
+          <div class="password-input">
+            <input id="perfil-senha-atual" name="senhaAtual" [type]="visible().atual ? 'text' : 'password'" autocomplete="current-password" maxlength="256" required [disabled]="changing()" [value]="currentPassword()" (input)="updatePassword('atual', $any($event.target).value)" (keyup)="detectCapsLock($event)" />
+            <button type="button" class="password-toggle" [attr.aria-pressed]="visible().atual" [attr.aria-label]="(visible().atual ? 'Ocultar' : 'Mostrar') + ' senha atual'" (click)="toggleVisibility('atual')">{{ visible().atual ? 'Ocultar' : 'Mostrar' }}</button>
+          </div>
+        </div>
+        <div class="password-field">
+          <label for="perfil-senha-nova">Nova senha</label>
+          <div class="password-input">
+            <input id="perfil-senha-nova" name="novaSenha" [type]="visible().nova ? 'text' : 'password'" autocomplete="new-password" maxlength="256" required aria-describedby="perfil-senha-regras" [attr.aria-invalid]="submitted() && !checks().different" [disabled]="changing()" [value]="newPassword()" (input)="updatePassword('nova', $any($event.target).value)" (keyup)="detectCapsLock($event)" />
+            <button type="button" class="password-toggle" [attr.aria-pressed]="visible().nova" [attr.aria-label]="(visible().nova ? 'Ocultar' : 'Mostrar') + ' nova senha'" (click)="toggleVisibility('nova')">{{ visible().nova ? 'Ocultar' : 'Mostrar' }}</button>
+          </div>
+        </div>
+        <div class="password-field">
+          <label for="perfil-senha-confirmacao">Confirme a nova senha</label>
+          <div class="password-input">
+            <input id="perfil-senha-confirmacao" name="confirmacaoSenha" [type]="visible().confirmacao ? 'text' : 'password'" autocomplete="new-password" maxlength="256" required aria-describedby="perfil-senha-regras" [attr.aria-invalid]="submitted() && !checks().matches" [disabled]="changing()" [value]="confirmPassword()" (input)="updatePassword('confirmacao', $any($event.target).value)" (keyup)="detectCapsLock($event)" />
+            <button type="button" class="password-toggle" [attr.aria-pressed]="visible().confirmacao" [attr.aria-label]="(visible().confirmacao ? 'Ocultar' : 'Mostrar') + ' confirmação da nova senha'" (click)="toggleVisibility('confirmacao')">{{ visible().confirmacao ? 'Ocultar' : 'Mostrar' }}</button>
+          </div>
+        </div>
+        @if (capsLock()) { <p class="password-warning" role="status">Caps Lock está ativado.</p> }
+        <ul id="perfil-senha-regras" class="password-checks">
+          <li [class.ok]="checks().different"><span aria-hidden="true">{{ checks().different ? '✓' : '•' }}</span> Diferente da senha atual</li>
+          <li [class.ok]="checks().matches"><span aria-hidden="true">{{ checks().matches ? '✓' : '•' }}</span> Confirmação igual à nova senha</li>
+        </ul>
+        @if (passwordError()) { <p class="password-message error" role="alert">{{ passwordError() }}</p> }
+        @if (passwordSuccess()) { <p class="password-message success" role="status">{{ passwordSuccess() }}</p> }
+        <footer class="password-actions">
+          <button type="button" class="acc-button" [disabled]="changing()" (click)="cancelPassword()">Cancelar</button>
+          <button type="submit" class="acc-button primary" [disabled]="changing()">{{ changing() ? 'Alterando…' : 'Alterar senha' }}</button>
+        </footer>
+      </form>
+    }
+  </div>
+</section>

@@ -1,13 +1,13 @@
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { randomUUID, timingSafeEqual } from 'node:crypto';
 import { pathToFileURL } from 'node:url';
-import { assertCoreRoute, callCore, CoreError, coreDestination } from './core-client.ts';
-import { requestBody, responseBody } from './contracts.ts';
+import { assertCoreRoute, callCore, changeCorePassword, CoreError, coreDestination } from './core-client.ts';
+import { initialPassword, object, requestBody, responseBody } from './contracts.ts';
 import { createLoginRoutes } from './login-routes.ts';
 import { capabilitiesFor, authorizeOperation } from './authorization.ts';
 import { mockAccessReport } from './mock-access-report.ts';
 
-type Config = { baseUrl: string; port: number; origins: Set<string>; writes: boolean; loginContract?: string; loginUrl?: string; adminUrl?: string };
+type Config = { baseUrl: string; port: number; origins: Set<string>; writes: boolean; publicRegistration?: boolean; loginContract?: string; loginUrl?: string; adminUrl?: string };
 export function configuration(env: NodeJS.ProcessEnv): Config {
   if (!['development', 'test'].includes(env.NODE_ENV ?? '')) throw new Error('Integração local permitida somente em desenvolvimento/teste');
   const baseUrl = coreDestination(env.ANI_CORE_BASE_URL ?? '').origin;
@@ -19,10 +19,11 @@ export function configuration(env: NodeJS.ProcessEnv): Config {
     if (origin.origin !== value || !['http:', 'https:'].includes(origin.protocol) || !['localhost', '127.0.0.1'].includes(origin.hostname)) throw new Error('Integração local exige origens de browser em loopback');
   }
   if (env.ANI_BFF_ENABLE_WRITES && !['true', 'false'].includes(env.ANI_BFF_ENABLE_WRITES)) throw new Error('ANI_BFF_ENABLE_WRITES deve ser true ou false');
+  if (env.ANI_BFF_ENABLE_PUBLIC_REGISTRATION && !['true', 'false'].includes(env.ANI_BFF_ENABLE_PUBLIC_REGISTRATION)) throw new Error('ANI_BFF_ENABLE_PUBLIC_REGISTRATION deve ser true ou false');
   const loginUrl=env.ANI_LOGIN_FRONTEND_URL || 'http://127.0.0.1:4201/';
   const adminUrl=env.ANI_ADMIN_FRONTEND_URL || 'http://127.0.0.1:4200/';
   for(const value of [loginUrl,adminUrl]) {const target=new URL(value);if(!origins.has(target.origin)||target.pathname!=='/'||target.search||target.hash||target.username||target.password)throw new Error('Destino de login/admin deve ser uma origem local permitida, sem parâmetros');}
-  return { baseUrl, port, origins, writes: env.ANI_BFF_ENABLE_WRITES === 'true', loginContract: env.ANI_LOGIN_CONTRACT || 'core-bearer-v1', loginUrl, adminUrl };
+  return { baseUrl, port, origins, writes: env.ANI_BFF_ENABLE_WRITES === 'true', publicRegistration: env.ANI_BFF_ENABLE_PUBLIC_REGISTRATION === 'true', loginContract: env.ANI_LOGIN_CONTRACT || 'core-bearer-v1', loginUrl, adminUrl };
 }
 async function json(request: IncomingMessage): Promise<Record<string, unknown>> {
   if (!/^application\/json(?:;|$)/i.test(request.headers['content-type'] ?? '')) throw new CoreError(415, 'Content-Type deve ser application/json');
@@ -39,7 +40,7 @@ async function json(request: IncomingMessage): Promise<Record<string, unknown>> 
   } catch { throw new CoreError(400, 'JSON inválido'); }
 }
 export function createApiServer(config: Config) {
-  const loginRoutes = createLoginRoutes(config.baseUrl, config.loginContract, config.adminUrl);
+  const loginRoutes = createLoginRoutes(config.baseUrl, config.loginContract, config.adminUrl, config.publicRegistration);
   let rateStart = Date.now(); let requestCount = 0; let active = 0;
   const equal = (a: string, b: string) => Buffer.byteLength(a) === Buffer.byteLength(b) && timingSafeEqual(Buffer.from(a), Buffer.from(b));
   const server = createServer((request, response) => {
@@ -82,30 +83,195 @@ export function createApiServer(config: Config) {
         ...(authenticated?{csrfToken:session!.csrf,user:{...session!.user,profileLabel:session!.profiles?.includes('Administrador')?'Administrador':'Usuário autenticado'}}:{})
       });
       if(url.pathname==='/bff/auth/integration')throw new CoreError(404,'Acesso por chave removido; utilize login e senha');
-      if(!authenticated)throw new CoreError(401,'Sessão necessária');
-      if(mutating&&(typeof request.headers['x-csrf-token']!=='string'||!equal(request.headers['x-csrf-token'],session!.csrf)))throw new CoreError(403,'CSRF inválido');
       if (!url.pathname.startsWith('/bff/api/v1/')) throw new CoreError(404, 'Rota não disponível');
       const path = url.pathname.slice('/bff/api/v1'.length);
+      const registrationRequest = !authenticated && method === 'POST' && path === '/usuarios' && url.searchParams.size === 0;
+      if (registrationRequest && !config.publicRegistration) throw new CoreError(403, 'Cadastro público desabilitado nesta integração');
+      const publicUserRegistration = registrationRequest && config.publicRegistration === true;
+      const publicActiveSystems = !authenticated
+        && method === 'GET'
+        && path === '/sistemas'
+        && url.searchParams.get('status') === 'ativo'
+        && [...url.searchParams.keys()].every(key => ['page', 'pageSize', 'status'].includes(key));
+      if(!authenticated && !publicActiveSystems && !publicUserRegistration)throw new CoreError(401,'Sessão necessária');
+      if(mutating&&(!session||typeof request.headers['x-csrf-token']!=='string'||!equal(request.headers['x-csrf-token'],session.csrf)))throw new CoreError(403,'CSRF inválido');
+      const loadOwnProfile = async () => {
+        const userId = session?.user?.id;
+        if (!userId || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userId) || !session?.authorization) {
+          throw new CoreError(401, 'Identidade autenticada inválida');
+        }
+        const userPath = `/usuarios/${userId}`;
+        const result = await callCore(config.baseUrl, 'GET', userPath, new URLSearchParams(), session.authorization, undefined, correlationId);
+        const profile = object(responseBody(userPath, 'GET', result.payload, new URLSearchParams()));
+        if (profile['id'] !== userId) throw new CoreError(502, 'Identidade divergente na resposta da API');
+        return profile;
+      };
+      if (path === '/me') {
+        if (method !== 'GET') throw new CoreError(405, 'Método não permitido');
+        if (url.searchParams.size) throw new CoreError(400, 'Parâmetros não permitidos');
+        if (active >= 8) throw new CoreError(503, 'Limite de chamadas simultâneas atingido');
+        active++;
+        try {
+          return send(200, await loadOwnProfile());
+        } catch (error) {
+          if (error instanceof CoreError && error.statusCode === 401) response.setHeader('Set-Cookie', loginRoutes.revoke(request));
+          throw error;
+        } finally { active--; }
+      }
+      if (path === '/me/acessos') {
+        if (method !== 'GET') throw new CoreError(405, 'Método não permitido');
+        if (url.searchParams.size) throw new CoreError(400, 'Parâmetros não permitidos');
+        const userId = session?.user?.id;
+        if (!userId || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userId) || !session?.authorization) {
+          throw new CoreError(401, 'Identidade autenticada inválida');
+        }
+        if (active >= 8) throw new CoreError(503, 'Limite de chamadas simultâneas atingido');
+        active++;
+        try {
+          const profilesPath = `/usuarios/${userId}/perfis`;
+          const effectivePath = `/usuarios/${userId}/permissoes-efetivas`;
+          const [profiles, effective] = await Promise.allSettled([
+            callCore(config.baseUrl, 'GET', profilesPath, new URLSearchParams(), session.authorization, undefined, correlationId),
+            callCore(config.baseUrl, 'GET', effectivePath, new URLSearchParams(), session.authorization, undefined, correlationId),
+          ]);
+          const failures = [profiles, effective].flatMap(item => item.status === 'rejected' ? [item.reason] : []);
+          const unauthorized = failures.find(reason => reason instanceof CoreError && reason.statusCode === 401);
+          if (unauthorized) throw unauthorized;
+          // Core may not expose relation queries to non-administrators; the login-confirmed claims remain a safe summary.
+          const unexpected = failures.find(reason => !(reason instanceof CoreError) || ![403, 404].includes(reason.statusCode));
+          if (unexpected) throw unexpected;
+          if (profiles.status === 'fulfilled' && effective.status === 'fulfilled') {
+            const profileItems = object(responseBody(profilesPath, 'GET', profiles.value.payload, new URLSearchParams()))['items'];
+            const permissionItems = object(responseBody(effectivePath, 'GET', effective.value.payload, new URLSearchParams()))['permissoes'];
+            return send(200, { origem: 'api', perfis: profileItems, permissoes: permissionItems });
+          }
+          return send(200, {
+            origem: 'sessao',
+            perfis: (session.profiles ?? []).map(nome => ({ nome })),
+            permissoes: (session.permissions ?? []).map(codigo => ({ codigo, nome: codigo })),
+          });
+        } catch (error) {
+          if (error instanceof CoreError && error.statusCode === 401) response.setHeader('Set-Cookie', loginRoutes.revoke(request));
+          throw error;
+        } finally { active--; }
+      }
+      if (path === '/auth/trocar-senha') {
+        if (method !== 'POST') throw new CoreError(405, 'Método não permitido');
+        if (url.searchParams.size) throw new CoreError(400, 'Parâmetros não permitidos');
+        if (!config.writes) throw new CoreError(403, 'Escritas desabilitadas nesta integração');
+        if (!session) throw new CoreError(401, 'Sessão necessária');
+        const input = await json(request);
+        if (Object.keys(input).sort().join(',') !== 'novaSenha,senhaAtual'
+          || typeof input['senhaAtual'] !== 'string' || !input['senhaAtual'] || input['senhaAtual'].length > 256
+          || typeof input['novaSenha'] !== 'string' || !input['novaSenha'] || input['novaSenha'].length > 256) {
+          input['senhaAtual'] = '';
+          input['novaSenha'] = '';
+          throw new CoreError(400, 'Informe as senhas dentro dos limites');
+        }
+        if (session.busy) {
+          input['senhaAtual'] = '';
+          input['novaSenha'] = '';
+          throw new CoreError(409, 'Uma operação já está em andamento');
+        }
+        if (active >= 8) {
+          input['senhaAtual'] = '';
+          input['novaSenha'] = '';
+          throw new CoreError(503, 'Limite de chamadas simultâneas atingido');
+        }
+        const now = Date.now();
+        if (session.passwordWindowStart === undefined || now - session.passwordWindowStart >= 60000) {
+          session.passwordWindowStart = now;
+          session.passwordAttemptCount = 0;
+        }
+        if ((session.passwordAttemptCount ?? 0) >= 5) {
+          input['senhaAtual'] = '';
+          input['novaSenha'] = '';
+          throw new CoreError(429, 'Muitas tentativas. Aguarde antes de tentar novamente');
+        }
+        session.passwordAttemptCount = (session.passwordAttemptCount ?? 0) + 1;
+        session.busy = true;
+        active++;
+        try {
+          const profile = await loadOwnProfile();
+          const identity = session;
+          if (!identity?.user || !identity.authorization || loginRoutes.sessionFor(request) !== identity) {
+            throw new CoreError(403, 'Sessão encerrada; autentique-se novamente');
+          }
+          const login = profile['login'];
+          const email = profile['email'];
+          if (typeof login !== 'string' || !login.trim() || login.length > 200
+            || typeof email !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 180) {
+            throw new CoreError(502, 'Login ou e-mail ausente no perfil da API');
+          }
+          const changeRequest = {
+            usuario: identity.user.id,
+            senhaAtual: input['senhaAtual'],
+            novaSenha: input['novaSenha'],
+            login: login.trim(),
+            email: email.trim(),
+          };
+          try {
+            await changeCorePassword(config.baseUrl, identity.authorization, changeRequest, correlationId);
+          } finally {
+            changeRequest.senhaAtual = '';
+            changeRequest.novaSenha = '';
+          }
+          return send(200, { ok: true });
+        } catch (error) {
+          if (error instanceof CoreError && error.statusCode === 401) response.setHeader('Set-Cookie', loginRoutes.revoke(request));
+          throw error;
+        } finally {
+          input['senhaAtual'] = '';
+          input['novaSenha'] = '';
+          session.busy = false;
+          active--;
+        }
+      }
       if(path==='/relatorios/acessos'||path.startsWith('/relatorios/acessos/')) {
         if(method!=='GET')throw new CoreError(405,'Relatório demonstrativo permite somente consulta');
         if(!capabilities.includes('reports.read'))throw new CoreError(403,'Operação não permitida para este usuário');
         return send(200,mockAccessReport(path,url.searchParams));
       }
       assertCoreRoute(method, path);
-      authorizeOperation(method,path,capabilities);
-      if (mutating && !config.writes) throw new CoreError(403, 'Escritas desabilitadas nesta integração');
+      if (!publicActiveSystems && !publicUserRegistration) authorizeOperation(method,path,capabilities);
+      if (mutating && !config.writes && !publicUserRegistration) throw new CoreError(403, 'Escritas desabilitadas nesta integração');
       const emptyDelete = method === 'DELETE' && (!request.headers['content-length'] || request.headers['content-length'] === '0') && !request.headers['transfer-encoding'];
-      const body = mutating ? requestBody(path, method, emptyDelete ? {} : await json(request)) : undefined;
+      const input = mutating ? emptyDelete ? {} : await json(request) : undefined;
+      if (publicUserRegistration && (!input || Object.keys(input).sort().join(',') !== 'email,login,nome,senha')) {
+        throw new CoreError(422, 'Cadastro público aceita somente nome, e-mail, login e senha');
+      }
+      const adminUserRegistration = authenticated && !publicUserRegistration && method === 'POST' && path === '/usuarios';
+      if (adminUserRegistration && input && 'senha' in input) {
+        input['senha'] = '';
+        throw new CoreError(422, 'A senha inicial é definida pelo BFF e não deve ser enviada');
+      }
+      const body = input ? requestBody(path, method, input) : undefined;
+      if (adminUserRegistration && body) body['senha'] = initialPassword(body['nome']);
+      if (publicUserRegistration && (body?.['login'] !== body?.['email'] || typeof body?.['senha'] !== 'string' || !body['senha'])) {
+        throw new CoreError(400, 'Login público deve corresponder ao e-mail e a senha é obrigatória');
+      }
+      if (publicUserRegistration) {
+        const now = Date.now();
+        if (session!.registrationWindowStart === undefined || now - session!.registrationWindowStart >= 60000) {
+          session!.registrationWindowStart = now;
+          session!.registrationCount = 0;
+        }
+        if ((session!.registrationCount ?? 0) >= 3) throw new CoreError(429, 'Limite de cadastros por sessão excedido');
+        session!.registrationCount = (session!.registrationCount ?? 0) + 1;
+      }
       if (active >= 8) throw new CoreError(503, 'Limite de chamadas simultâneas atingido');
       active++;
       try {
-        const result = await callCore(config.baseUrl, method, path, url.searchParams, session!.authorization, method === 'DELETE' ? undefined : body, correlationId);
+        const result = await callCore(config.baseUrl, method, path, url.searchParams, session?.authorization, method === 'DELETE' ? undefined : body, correlationId);
         if (result.status === 204) return send(204);
         return send(result.status, responseBody(path, method, result.payload, url.searchParams));
       } catch(error) {
         if(error instanceof CoreError&&error.statusCode===401)response.setHeader('Set-Cookie',loginRoutes.revoke(request));
         throw error;
-      } finally { active--; }
+      } finally {
+        active--;
+        if (body && 'senha' in body) body['senha'] = '';
+      }
     };
     void execute().catch(error => {
       const status = error instanceof CoreError ? error.statusCode : 500;

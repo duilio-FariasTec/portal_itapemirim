@@ -1,6 +1,6 @@
 /** Contract candidate aligned to docs; replace/generated from the API analyst's OpenAPI when available. */
 export type AccessDecision = 'pending' | 'approved' | 'rejected';
-export type AniResource = 'solicitacoes-cadastro' | 'usuarios' | 'portais' | 'perfis' | 'permissoes' | 'auditoria' | 'relatorios/acessos';
+export type AniResource = 'solicitacoes-cadastro' | 'usuarios' | 'sistemas' | 'perfis' | 'permissoes' | 'auditoria' | 'relatorios/acessos';
 
 export interface ListQuery {
   page?: number;
@@ -13,11 +13,18 @@ export interface ListQuery {
 }
 
 export interface UserInput { nome: string; email: string; login?: string; status?: 'ativo' | 'inativo' | 'pendente' }
-export interface PortalInput { nome: string; codigo: string; descricao?: string; status?: 'ativo' | 'inativo' }
+export interface SistemaInput { codigo: string; nome: string; descricao?: string; status?: 'ativo' | 'inativo' }
 export interface ProfileInput { nome: string; sistemaId: string; descricao?: string; status?: 'ativo' | 'inativo' }
 export interface PermissionInput { nome: string; recurso: string; acao: string; escopo?: string; status?: 'ativo' | 'inativo' }
 export interface EffectivePermissions { usuarioId: string; permissoes: AniPermission[] }
 export interface AniPermission extends ApiRecord { id: string; nome: string; recurso: string; acao: string; escopo?: string; status?: string }
+export interface AniSystem extends ApiRecord {
+  id: string;
+  codigo: string;
+  nome: string;
+  descricao: string;
+  status: 'ativo' | 'inativo';
+}
 
 export interface Solicitation {
   id: string;
@@ -37,13 +44,6 @@ export interface AniUser {
   email: string;
   status: 'ativo' | 'inativo' | 'pendente';
   sistemas: string[];
-}
-
-export interface AniPortal {
-  id: string;
-  nome: string;
-  codigo: string;
-  status: 'ativo' | 'inativo';
 }
 
 export interface AniProfile {

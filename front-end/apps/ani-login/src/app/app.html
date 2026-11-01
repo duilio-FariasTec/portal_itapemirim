@@ -29,51 +29,68 @@
             <small id="password-hint" class="field-hint">Digite a senha cadastrada para sua conta.</small>
             @if (showPasswordError()) { <p id="password-error" class="field-error">Digite sua senha para continuar.</p> }
           </div>
+          <button class="back forgot-password" type="button" [disabled]="loggingIn()" (click)="openRecovery()">Esqueceu sua senha?</button>
           @if (loginMessage()) { <p class="login-message" role="status" aria-live="polite">{{ loginMessage() }}</p> }
           <button class="button primary" type="submit" [disabled]="loggingIn() || contextLoading() || !loginContext()?.configured">{{ loggingIn() ? 'Validando acesso…' : 'Entrar' }}</button>
         </form>
         @if (!contextLoading() && !loginContext()?.configured) { <button class="button secondary" type="button" (click)="loadLoginContext()">Atualizar acesso</button> }
         <div class="separator"><span>ou</span></div>
-        <button class="button secondary" type="button" [disabled]="loggingIn()" (click)="openRequest()">Solicitar acesso</button>
-        <p class="footnote">Seu acesso será analisado pela equipe responsável pelo sistema.</p>
-      } @else if (!requested()) {
-        <button class="back" type="button" [disabled]="sending()" (click)="page.set('access')">← Voltar ao acesso</button><p class="eyebrow">NOVO ACESSO</p><h2 id="card-title">Solicitar cadastro</h2><p class="subtext">Informe seus dados e escolha um sistema disponível para análise.</p>
-        @if (systemsLoading()) {
-          <div class="request-state" role="status" aria-live="polite"><span class="spinner" aria-hidden="true"></span><span>Carregando sistemas disponíveis…</span></div>
-        } @else if (systemsError()) {
-          <div class="request-error" role="alert"><p>{{ systemsError() }}</p><button class="button secondary" type="button" (click)="loadSystems()">Tentar novamente</button></div>
-        } @else if (systems().length === 0) {
-          <div class="request-error" role="status"><p>Nenhum sistema está disponível para solicitação no momento.</p><button class="button secondary" type="button" (click)="loadSystems()">Atualizar lista</button></div>
+        @if (loginContext()?.registrationEnabled) { <button class="button secondary" type="button" [disabled]="loggingIn()" (click)="openRegistration()">Criar conta</button> }
+        <p class="footnote">Criar uma conta não concede acesso a sistemas. A atribuição de acessos é feita separadamente.</p>
+      } @else if (page() === 'recovery') {
+        <button class="back" type="button" [disabled]="recoveryLoading()" (click)="closeRecovery()">← Voltar ao acesso</button>
+        @if (recoveryComplete()) {
+          <div class="success-mark" aria-hidden="true">✓</div>
+          <p class="eyebrow">RECUPERAR ACESSO</p><h2 id="card-title">Confira seu e-mail</h2>
+          <p class="subtext" role="status">{{ recoveryMessage() }}</p>
+          <button class="button secondary" type="button" (click)="closeRecovery()">Voltar ao acesso</button>
         } @else {
-          <form novalidate (ngSubmit)="submit()">
+          <p class="eyebrow">RECUPERAR ACESSO</p><h2 id="card-title">Esqueceu sua senha?</h2>
+          <p class="subtext">Informe seu e-mail cadastrado. Se houver uma conta ativa associada, você receberá as instruções e uma senha temporária.</p>
+          <form novalidate (ngSubmit)="submitRecovery()" [attr.aria-busy]="recoveryLoading()">
             <div class="request-field">
-              <label for="name">Nome completo <span>*</span></label><input id="name" name="name" autocomplete="name" maxlength="120" required [ngModel]="fullName()" (ngModelChange)="fullName.set($event); error.set('')" (blur)="nameTouched.set(true)" [class.invalid]="showNameError()" [attr.aria-invalid]="showNameError()" [attr.aria-describedby]="showNameError() ? 'name-hint name-error' : 'name-hint'" />
+              <label for="recovery-email">E-mail cadastrado <span>*</span></label>
+              <input id="recovery-email" name="recovery-email" type="email" inputmode="email" autocomplete="email" maxlength="180" required [disabled]="recoveryLoading()" [ngModel]="recoveryLogin()" (ngModelChange)="recoveryLogin.set($event); recoveryError.set('')" [class.invalid]="showRecoveryError()" [attr.aria-invalid]="showRecoveryError()" [attr.aria-describedby]="showRecoveryError() ? 'recovery-hint recovery-error' : 'recovery-hint'" />
+              <small id="recovery-hint" class="field-hint">Se o e-mail estiver associado a uma conta ativa, enviaremos as instruções para ele.</small>
+              @if (showRecoveryError()) { <p id="recovery-error" class="field-error">Informe um e-mail válido.</p> }
+            </div>
+            @if (recoveryError()) { <p class="login-message" role="alert">{{ recoveryError() }}</p> }
+            <button class="button primary" type="submit" [disabled]="recoveryLoading() || contextLoading() || !loginContext()?.configured || !loginContext()?.csrfToken">{{ recoveryLoading() ? 'Solicitando recuperação…' : 'Enviar senha temporária' }}</button>
+          </form>
+        }
+      } @else if (!registrationComplete()) {
+          <button class="back" type="button" [disabled]="registering()" (click)="closeRegistration()">← Voltar ao acesso</button><p class="eyebrow">NOVA CONTA</p><h2 id="card-title">Criar conta</h2><p class="subtext">Informe seus dados. Seu e-mail será usado como login.</p>
+          @if (!loginContext()?.registrationEnabled) {
+            <div class="request-error" role="status"><p>O cadastro direto está desabilitado neste ambiente.</p></div>
+          } @else {
+          <form novalidate (ngSubmit)="submitRegistration()" [attr.aria-busy]="registering()">
+            <div class="request-field">
+              <label for="name">Nome completo <span>*</span></label><input id="name" name="name" autocomplete="name" maxlength="120" required [disabled]="registering()" [ngModel]="fullName()" (ngModelChange)="fullName.set($event); error.set('')" (blur)="nameTouched.set(true)" [class.invalid]="showNameError()" [attr.aria-invalid]="showNameError()" [attr.aria-describedby]="showNameError() ? 'name-hint name-error' : 'name-hint'" />
               <small id="name-hint" class="field-hint">Até 120 caracteres.</small>
               @if (showNameError()) { <p id="name-error" class="field-error">Informe seu nome completo.</p> }
               @else if (fullName().length > 120) { <p class="field-error">O nome deve ter no máximo 120 caracteres.</p> }
             </div>
             <div class="request-field">
-              <label for="email">E-mail para contato <span>*</span></label><input id="email" name="email" type="email" inputmode="email" autocomplete="email" maxlength="180" required [ngModel]="email()" (ngModelChange)="email.set($event); error.set('')" (blur)="emailTouched.set(true)" [class.invalid]="showEmailError()" [attr.aria-invalid]="showEmailError()" [attr.aria-describedby]="showEmailError() ? 'email-hint email-error' : 'email-hint'" />
+              <label for="email">E-mail <span>*</span></label><input id="email" name="email" type="email" inputmode="email" autocomplete="email" maxlength="180" required [disabled]="registering()" [ngModel]="email()" (ngModelChange)="email.set($event); error.set('')" (blur)="emailTouched.set(true)" [class.invalid]="showEmailError()" [attr.aria-invalid]="showEmailError()" [attr.aria-describedby]="showEmailError() ? 'email-hint email-error' : 'email-hint'" />
               <small id="email-hint" class="field-hint">Use um endereço de e-mail válido. Até 180 caracteres.</small>
               @if (showEmailError()) { <p id="email-error" class="field-error">Informe um e-mail válido.</p> }
               @else if (email().length > 180) { <p class="field-error">O e-mail deve ter no máximo 180 caracteres.</p> }
             </div>
             <div class="request-field">
-              <label for="system">Sistema solicitado <span>*</span></label><select id="system" name="system" required [ngModel]="systemId()" (ngModelChange)="systemId.set($event); error.set('')" (blur)="systemTouched.set(true)" [class.invalid]="showSystemError()" [attr.aria-invalid]="showSystemError()" [attr.aria-describedby]="showSystemError() ? 'system-hint system-error' : 'system-hint'"><option value="">Selecione um sistema</option>@for (system of systems(); track system.id) { <option [value]="system.id">{{ system.nome }}</option> }</select>
-              <small id="system-hint" class="field-hint">A lista contém sistemas cadastrados e ativos.</small>
-              @if (showSystemError()) { <p id="system-error" class="field-error">Selecione um sistema disponível.</p> }
+              <label for="register-password">Senha <span>*</span></label><input id="register-password" name="new-password" type="password" autocomplete="new-password" maxlength="256" required [disabled]="registering()" [ngModel]="registrationPassword()" (ngModelChange)="registrationPassword.set($event); error.set('')" (blur)="registrationPasswordTouched.set(true)" [class.invalid]="showRegistrationPasswordError()" [attr.aria-invalid]="showRegistrationPasswordError()" />
+              @if (showRegistrationPasswordError()) { <p class="field-error">Informe uma senha.</p> }
             </div>
             <div class="request-field">
-              <label for="reason">Justificativa <small>(opcional)</small></label><textarea id="reason" name="reason" rows="3" maxlength="500" [ngModel]="reason()" (ngModelChange)="reason.set($event); error.set('')" aria-describedby="reason-hint"></textarea>
-              <small id="reason-hint" class="field-hint">Não inclua senhas ou dados sensíveis. Até 500 caracteres.</small>
+              <label for="confirm-password">Confirme a senha <span>*</span></label><input id="confirm-password" name="new-password-confirmation" type="password" autocomplete="new-password" maxlength="256" required [disabled]="registering()" [ngModel]="passwordConfirmation()" (ngModelChange)="passwordConfirmation.set($event); error.set('')" (blur)="passwordConfirmationTouched.set(true)" [class.invalid]="showPasswordConfirmationError()" [attr.aria-invalid]="showPasswordConfirmationError()" />
+              @if (showPasswordConfirmationError()) { <p class="field-error">As senhas devem ser iguais.</p> }
             </div>
             @if (error()) { <p class="error" role="alert" aria-live="assertive">{{ error() }}</p> }
-            <button class="button primary" type="submit" [disabled]="!canSubmitRequest()">{{ sending() ? 'Enviando…' : 'Enviar solicitação' }}</button>
+            <button class="button primary" type="submit" [disabled]="!canSubmitRegistration()">{{ registering() ? 'Criando conta…' : 'Criar conta' }}</button>
           </form>
-        }
-        <p class="footnote">Enviar a solicitação não libera acesso. Os dados serão analisados pela equipe responsável.</p>
+          }
+        <p class="footnote">A conta será criada sem associação a sistemas ou perfis. Criar uma conta não concede acesso.</p>
       } @else {
-        <div class="success-mark">✓</div><p class="eyebrow">SOLICITAÇÃO REGISTRADA</p><h2 id="card-title">Recebemos seu pedido</h2><p class="subtext">Sua solicitação foi registrada no ambiente de demonstração e aguarda análise.</p><p class="request-reference"><span>Protocolo da solicitação</span><strong>{{ requestId() }}</strong></p><button class="button secondary" type="button" (click)="page.set('access')">Voltar ao início</button><button class="button secondary new-request" type="button" (click)="startAnotherRequest()">Fazer outra solicitação</button>
+        <div class="success-mark">✓</div><p class="eyebrow">CONTA CRIADA</p><h2 id="card-title">Cadastro concluído</h2><p class="subtext">A API confirmou a criação da conta. Ela não recebeu associação a sistemas ou perfis; isso não significa que acessos foram concedidos.</p><button class="button secondary" type="button" (click)="page.set('access')">Voltar ao início</button><button class="button secondary new-request" type="button" (click)="startAnotherRegistration()">Criar outra conta</button>
       }
     </section>
   </section>

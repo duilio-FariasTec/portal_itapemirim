@@ -47,6 +47,7 @@ async function body(req: IncomingMessage): Promise<Record<string, unknown>> {
 function rowsFor(resource: string): Row[] | undefined {
   switch (resource) {
     case 'usuarios': return users;
+    case 'sistemas': return systems;
     case 'portais': return systems;
     case 'perfis': return profiles;
     case 'permissoes': return permissions;
@@ -77,6 +78,17 @@ const server = createServer(async (req, res) => {
   const pageSize = Math.min(100, Math.max(1, Number(url.searchParams.get('pageSize') ?? 25) || 25));
   const search = url.searchParams.get('search') ?? '';
 
+  if (path === 'auth/reset-senha' && method === 'POST') {
+    let data: Record<string, unknown>; try { data = await body(req); } catch { return respond(res, 400, { title: 'Solicitação inválida', status: 400 }); }
+    const email = typeof data['email'] === 'string' ? data['email'].trim() : '';
+    if (Object.keys(data).some((key) => key !== 'email') || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email) || email.length > 180) {
+      return respond(res, 400, { title: 'Informe um e-mail válido', status: 400 });
+    }
+    return respond(res, 200, {
+      mensagem: 'Se as informações informadas corresponderem a uma conta ativa, você receberá um e-mail com as instruções e a senha temporária de acesso.',
+      processadoEmUtc: new Date().toISOString(),
+    });
+  }
   if (path === 'solicitacoes-cadastro' && method === 'GET') return respond(res, 200, page(requests, search, pageNumber, pageSize, url.searchParams.get('status') ?? ''));
   const requestDetail = path.match(/^solicitacoes-cadastro\/([a-zA-Z0-9-]+)$/);
   if (requestDetail && method === 'GET') {
@@ -148,6 +160,11 @@ const server = createServer(async (req, res) => {
       recordAudit('revogar-perfil', 'usuarios', user.id); return respond(res, 204, null);
     }
   }
+  const systemByCode = path.match(/^sistemas\/codigo\/([A-Za-z0-9_-]+)$/);
+  if (systemByCode && method === 'GET') {
+    const system = systems.find((item) => item.codigo === systemByCode[1]);
+    return system ? respond(res, 200, system) : notFound(res, 'Sistema não encontrado');
+  }
   const profilePermissions = path.match(/^perfis\/([a-zA-Z0-9-]+)\/permissoes(?:\/([a-zA-Z0-9-]+))?$/);
   if (profilePermissions) {
     const profile = profiles.find((item) => item.id === profilePermissions[1]); if (!profile) return notFound(res, 'Perfil não encontrado');
@@ -163,7 +180,7 @@ const server = createServer(async (req, res) => {
       profile.permissoes = ids.filter((id) => id !== profilePermissions[2]); recordAudit('revogar-permissao', 'perfis', profile.id); return respond(res, 204, null);
     }
   }
-  const matchResource = path.match(/^(usuarios|portais|perfis|permissoes|auditoria|relatorios\/acessos)(?:\/([a-zA-Z0-9-]+))?$/);
+  const matchResource = path.match(/^(usuarios|sistemas|portais|perfis|permissoes|auditoria|relatorios\/acessos)(?:\/([a-zA-Z0-9-]+))?$/);
   if (!matchResource) return notFound(res, 'Rota não implementada no mock');
   const resource = matchResource[1]; const id = matchResource[2];
   if (resource === 'relatorios/acessos') {
