@@ -1,7 +1,7 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { AccessRequestReceipt, AccessRequestService, PublicSystemOption } from './core/access-request.service';
+import { UserRegistrationService } from './core/user-registration.service';
 import { LoginContext, LoginService } from './core/login.service';
 
 @Component({ imports: [FormsModule], selector: 'ani-login-root', styleUrl: './app.scss', templateUrl: './app.html' })
@@ -11,33 +11,37 @@ export class App implements OnInit {
   protected readonly contextLoading = signal(true);
   protected readonly loggingIn = signal(false);
   protected readonly loggingOut = signal(false);
-  private readonly accessRequests = inject(AccessRequestService);
-  protected readonly page = signal<'access' | 'request'>('access');
-  protected readonly sending = signal(false);
+  private readonly registration = inject(UserRegistrationService);
+  protected readonly page = signal<'access' | 'register' | 'recovery'>('access');
+  protected readonly registering = signal(false);
   protected readonly error = signal('');
-  protected readonly systems = signal<PublicSystemOption[]>([]);
-  protected readonly systemsLoading = signal(false);
-  protected readonly systemsError = signal('');
   protected readonly login = signal('');
   protected readonly password = signal('');
+  protected readonly registrationPassword = signal('');
+  protected readonly passwordConfirmation = signal('');
   protected readonly passwordVisible = signal(false);
   protected readonly loginMessage = signal('');
   protected readonly loginTouched = signal(false);
   protected readonly passwordTouched = signal(false);
   protected readonly loginSubmitted = signal(false);
+  protected readonly recoveryLogin = signal('');
+  protected readonly recoverySubmitted = signal(false);
+  protected readonly recoveryLoading = signal(false);
+  protected readonly recoveryError = signal('');
+  protected readonly recoveryMessage = signal('');
+  protected readonly recoveryComplete = signal(false);
   protected readonly fullName = signal('');
   protected readonly email = signal('');
-  protected readonly systemId = signal('');
-  protected readonly reason = signal('');
-  protected readonly requested = signal(false);
-  protected readonly requestId = signal('');
-  protected readonly requestSubmitted = signal(false);
+  protected readonly registrationComplete = signal(false);
+  protected readonly registrationSubmitted = signal(false);
   protected readonly nameTouched = signal(false);
   protected readonly emailTouched = signal(false);
-  protected readonly systemTouched = signal(false);
+  protected readonly registrationPasswordTouched = signal(false);
+  protected readonly passwordConfirmationTouched = signal(false);
 
   protected showLoginError(): boolean { return (this.loginTouched() || this.loginSubmitted()) && !this.login().trim(); }
   protected showPasswordError(): boolean { return !this.loggingIn() && (this.passwordTouched() || this.loginSubmitted()) && !this.password(); }
+  protected showRecoveryError(): boolean { return !this.recoveryLoading() && this.recoverySubmitted() && (!this.isValidEmail(this.recoveryLogin()) || this.recoveryLogin().trim().length > 180); }
   ngOnInit(): void { this.loadLoginContext(); }
   protected loadLoginContext(): void {
     this.contextLoading.set(true);
@@ -46,36 +50,83 @@ export class App implements OnInit {
       error: () => { this.loginContext.set(null); this.contextLoading.set(false); this.loginMessage.set('Não foi possível conectar ao serviço de acesso. Tente novamente.'); },
     });
   }
-  protected showNameError(): boolean { return (this.nameTouched() || this.requestSubmitted()) && !this.fullName().trim(); }
-  protected showEmailError(): boolean { return (this.emailTouched() || this.requestSubmitted()) && !this.isValidEmail(this.email()); }
-  protected showSystemError(): boolean { return (this.systemTouched() || this.requestSubmitted()) && !this.systems().some((system) => system.id === this.systemId()); }
+  protected showNameError(): boolean { return (this.nameTouched() || this.registrationSubmitted()) && !this.fullName().trim(); }
+  protected showEmailError(): boolean { return (this.emailTouched() || this.registrationSubmitted()) && !this.isValidEmail(this.email()); }
+  protected showRegistrationPasswordError(): boolean { return (this.registrationPasswordTouched() || this.registrationSubmitted()) && !this.registrationPassword(); }
+  protected showPasswordConfirmationError(): boolean { return (this.passwordConfirmationTouched() || this.registrationSubmitted()) && this.passwordConfirmation() !== this.registrationPassword(); }
   protected isValidEmail(value: string): boolean { return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(value.trim()); }
-  protected canSubmitRequest(): boolean { return !this.sending() && !this.systemsLoading() && this.systems().length > 0; }
+  protected canSubmitRegistration(): boolean { return !this.registering() && !this.contextLoading() && Boolean(this.loginContext()?.registrationEnabled && this.loginContext()?.csrfToken); }
 
   protected togglePassword(): void { this.passwordVisible.update((visible) => !visible); }
 
-  protected openRequest(): void {
-    this.password.set(''); this.passwordVisible.set(false);
-    this.page.set('request');
-    this.error.set('');
-    this.requestSubmitted.set(false);
-    if (!this.systems().length && !this.systemsLoading()) this.loadSystems();
+  protected openRecovery(): void {
+    this.password.set('');
+    this.passwordVisible.set(false);
+    this.recoveryLogin.set(this.isValidEmail(this.login()) ? this.login() : '');
+    this.recoverySubmitted.set(false);
+    this.recoveryError.set('');
+    this.recoveryMessage.set('');
+    this.recoveryComplete.set(false);
+    this.page.set('recovery');
   }
+  protected closeRecovery(): void {
+    if (this.recoveryLoading()) return;
+    this.recoveryLogin.set('');
+    this.recoverySubmitted.set(false);
+    this.recoveryError.set('');
+    this.recoveryMessage.set('');
+    this.recoveryComplete.set(false);
+    this.page.set('access');
+  }
+  protected submitRecovery(): void {
+    if (this.recoveryLoading()) return;
+    this.recoverySubmitted.set(true);
+    this.recoveryError.set('');
+    const email = this.recoveryLogin().trim();
+    if (!this.isValidEmail(email) || email.length > 180) return;
+    const csrf = this.loginContext()?.csrfToken;
+    if (!csrf || !this.loginContext()?.configured) {
+      this.recoveryError.set('O serviço de recuperação está indisponível. Atualize o acesso e tente novamente.');
+      return;
+    }
 
-  protected loadSystems(): void {
-    this.systemsLoading.set(true);
-    this.systemsError.set('');
-    this.accessRequests.listAvailableSystems().subscribe({
-      next: (result) => {
-        this.systems.set((result.items ?? []).filter((system) => system.status === 'ativo'));
-        this.systemsLoading.set(false);
+    this.recoveryLoading.set(true);
+    this.authentication.requestPasswordReset(email, csrf).subscribe({
+      next: result => {
+        this.recoveryLoading.set(false);
+        if (typeof result?.mensagem !== 'string' || !result.mensagem.trim()) {
+          this.recoveryError.set('Não foi possível confirmar a solicitação. Tente novamente mais tarde.');
+          return;
+        }
+        this.recoveryLogin.set('');
+        this.recoveryMessage.set(result.mensagem);
+        this.recoveryComplete.set(true);
       },
-      error: () => {
-        this.systems.set([]);
-        this.systemsLoading.set(false);
-        this.systemsError.set('Não foi possível carregar os sistemas. Tente novamente mais tarde.');
+      error: (failure: HttpErrorResponse) => {
+        this.recoveryLoading.set(false);
+        if (failure.status === 403) {
+          this.recoveryError.set('A sessão de segurança expirou. Atualizamos o acesso; tente novamente.');
+          this.loadLoginContext();
+          return;
+        }
+        this.recoveryError.set(failure.status === 429
+          ? 'Muitas solicitações em sequência. Aguarde e tente novamente.'
+          : 'Não foi possível processar a recuperação agora. Tente novamente mais tarde.');
       },
     });
+  }
+
+  protected openRegistration(): void {
+    this.password.set(''); this.passwordVisible.set(false);
+    this.registrationPassword.set(''); this.passwordConfirmation.set('');
+    this.page.set('register');
+    this.error.set('');
+    this.registrationSubmitted.set(false);
+  }
+  protected closeRegistration(): void {
+    if (this.registering()) return;
+    this.registrationPassword.set(''); this.passwordConfirmation.set('');
+    this.error.set(''); this.page.set('access');
   }
 
   protected submitLogin(): void {
@@ -114,48 +165,54 @@ export class App implements OnInit {
     });
   }
 
-  protected submit(): void {
-    this.requestSubmitted.set(true);
+  protected submitRegistration(): void {
+    if (this.registering()) return;
+    this.registrationSubmitted.set(true);
     this.error.set('');
     const name = this.fullName().trim();
     const email = this.email().trim();
-    const system = this.systems().find((item) => item.id === this.systemId());
-    const reason = this.reason().trim();
-    if (!name || name.length > 120 || !this.isValidEmail(email) || email.length > 180 || !system || reason.length > 500) {
-      this.error.set('Confira os campos destacados e os limites de caracteres antes de enviar.'); return;
+    const senha = this.registrationPassword();
+    if (!name || name.length > 120 || !this.isValidEmail(email) || email.length > 180 || !senha || senha.length > 256 || senha !== this.passwordConfirmation()) {
+      this.error.set('Confira os campos destacados antes de criar a conta.'); return;
+    }
+    const csrf = this.loginContext()?.csrfToken;
+    if (!csrf || !this.loginContext()?.registrationEnabled) {
+      this.error.set('O cadastro direto está desabilitado neste ambiente.');
+      return;
     }
 
-    this.sending.set(true);
-    this.accessRequests.submit({ nome: name, email, sistemaId: system.id, justificativa: reason || undefined }).subscribe({
-      next: (receipt: AccessRequestReceipt) => {
-        if (!receipt?.id || receipt.status !== 'pending') {
-          this.error.set('O BFF respondeu sem confirmar a solicitação. Atualize a fila antes de tentar novamente.');
-          this.sending.set(false);
+    this.registering.set(true);
+    this.registrationPassword.set(''); this.passwordConfirmation.set('');
+    this.registration.register({ nome: name, login: email, email, senha }, csrf).subscribe({
+      next: (result) => {
+        this.registering.set(false);
+        if (!result?.ok) {
+          this.error.set('O serviço não confirmou a criação da conta. Tente novamente.');
           return;
         }
-        this.requestId.set(receipt.id);
-        this.requested.set(true);
-        this.sending.set(false);
+        this.registrationComplete.set(true);
       },
       error: (failure: HttpErrorResponse) => {
-        this.error.set(this.requestError(failure));
-        this.sending.set(false);
+        this.error.set(this.registrationError(failure));
+        this.registering.set(false);
       },
     });
   }
 
-  protected startAnotherRequest(): void {
-    this.requested.set(false); this.requestId.set('');
-    this.fullName.set(''); this.email.set(''); this.systemId.set(''); this.reason.set('');
-    this.nameTouched.set(false); this.emailTouched.set(false); this.systemTouched.set(false); this.requestSubmitted.set(false);
-    this.error.set(''); this.page.set('request');
+  protected startAnotherRegistration(): void {
+    this.registrationComplete.set(false);
+    this.fullName.set(''); this.email.set(''); this.registrationPassword.set(''); this.passwordConfirmation.set('');
+    this.nameTouched.set(false); this.emailTouched.set(false); this.registrationPasswordTouched.set(false); this.passwordConfirmationTouched.set(false); this.registrationSubmitted.set(false);
+    this.error.set(''); this.page.set('register');
   }
 
-  private requestError(error: HttpErrorResponse): string {
-    if (error.status === 0) return 'Não foi possível conectar ao BFF. Seus dados não foram confirmados; tente novamente.';
+  private registrationError(error: HttpErrorResponse): string {
+    if (error.status === 0) return 'Não foi possível conectar ao serviço. A conta não foi confirmada; tente novamente.';
+    if (error.status === 401) return 'Sua sessão de cadastro expirou. Atualize a página e tente novamente.';
+    if (error.status === 403) return 'O cadastro direto está desabilitado neste ambiente ou a proteção de sessão expirou.';
     if (error.status === 400 || error.status === 422) return typeof error.error?.title === 'string' ? error.error.title : 'Revise os dados informados.';
-    if (error.status === 409) return 'Já existe uma solicitação em análise para esses dados. Consulte a equipe responsável.';
+    if (error.status === 409) return 'Já existe uma conta com esses dados. Verifique as informações ou procure a equipe responsável.';
     if (error.status === 429) return 'Muitas solicitações em sequência. Aguarde e tente novamente.';
-    return 'Não foi possível registrar a solicitação. Tente novamente mais tarde.';
+    return 'Não foi possível criar a conta. Tente novamente mais tarde.';
   }
 }

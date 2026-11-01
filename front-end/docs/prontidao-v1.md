@@ -1,6 +1,21 @@
 # Prontidão do front-end ANI para a V1
 
+## Estado consolidado — 2026-11-01
+
+O estado atual é **integração local em desenvolvimento**, não mock-only e não release de produção. Login e sessão via Core já estão implementados; o acesso técnico por chave foi removido. Os blocos abaixo registram etapas anteriores e não devem ser usados como descrição vigente.
+
+- Meu Perfil foi extraído em componente standalone, com dados, acessos e troca de senha; revisão visual desktop/mobile realizada, sem certificação de acessibilidade.
+- Cadastro administrativo tem geração de senha inicial no BFF por regra previsível. Não há evidência de jornada completa cadastro → login → concessão de acesso → troca de senha; revisar política, status e contratos antes do aceite.
+- Sistemas/Perfis/Permissões têm criação e edição condicionadas a `catalog.write` e à flag de escrita. Acesso total de Administrador permanece pendente de definição com o Core; não foi concedido por esta entrega.
+- Recuperação e troca de senha possuem integração e testes locais; confirmar os efeitos remotos, política de senha e revogação de sessão.
+- Solicitações/aprovações reais e relatório real permanecem pendentes; relatório demonstrativo continua identificado. DELETE não garante inativação lógica.
+- Build de produção do Admin permanece bloqueado pelo orçamento de `app.scss`. Não aumentar o limite para mascarar o bloqueio.
+
+Verificações atuais e limites estão em [continuidade](continuidade-2026-11-01.md); instruções reproduzíveis no [README](../README.md). Credenciais, `.env.local`, dependências e evidências com dados pessoais não integram a entrega.
+
 **Atualização de integração (2026-10-31):** há agora BFF de transporte real com acesso local por chave, sessão/CSRF, validação de DTOs, allowlist e adaptação de respostas. Consulte [conexão ao Core](conexao-core.md) para execução e limites. O modo mock descrito abaixo continua separado. O acesso remoto e os schemas reais não foram validados; autenticação/autorizações de produção continuam pendentes.
+
+**Atualização (2026-11-01):** o OpenAPI atual inclui `/api/v1/sistemas`. A tela integrada consulta, cria e altera sistemas pelo BFF quando a permissão e a configuração de escrita permitem; DELETE segue bloqueado até definição de semântica. O contrato baixado está em [ani-core-openapi-v1.json](ani-core-openapi-v1.json). Os itens abaixo sobre `/portais` descrevem o mock e o estado histórico, não o endpoint integrado atual.
 
 ## O que está pronto para navegação local
 
@@ -23,9 +38,9 @@
 | Perfis | `GET/POST /perfis`, `GET/PUT/DELETE /perfis/{id}`, `GET/POST /perfis/{id}/permissoes`, `DELETE /perfis/{id}/permissoes/{permissaoId}` |
 | Permissões | `GET/POST /permissoes`, `GET/PUT/DELETE /permissoes/{id}` |
 | Auditoria | `GET /auditoria` e detalhe quando disponível |
-| Complementares da UI | `GET /portais` (metadados do catálogo ativo do mock), solicitações de cadastro e `GET /relatorios/acessos` |
+| Complementares da UI | `GET /sistemas` (catálogo do mock neste modo); solicitações de cadastro e `GET /relatorios/acessos` |
 
-Estas rotas adicionais e seus payloads são **provisórios** quando não aparecem no contrato que o analista do Core implementar. O `GET /portais` público no BFF é limitado a metadados do catálogo ativo do mock. A aprovação mock muda somente o estado da solicitação; não cria usuário nem concede perfil. O mock valida navegação e formato da tela; não confirma que o Core real possui esses recursos ou essas regras.
+As rotas de solicitação e relatório e seus payloads são **provisórios** quando não aparecem no contrato Core. O `GET /sistemas` público no BFF mock é limitado a metadados do catálogo; no modo integrado, o catálogo usa o endpoint Core descrito acima. A aprovação mock muda somente o estado da solicitação; não cria usuário nem concede perfil. O mock valida navegação e formato da tela; não confirma que o Core real possui esses recursos ou essas regras.
 
 ## Pronto para QA exploratório do mock
 

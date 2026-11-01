@@ -1,5 +1,9 @@
 # Levantamento V1 — login e jornada ponta a ponta
 
+**Consolidação (2026-11-01):** as verificações abaixo são históricas. A sessão compartilhada atual usa cookie com `Path=/bff`. O perfil Administrador libera leitura/navegação; escritas dependem de códigos explícitos e flag. O pedido de acesso total está pendente de definição de administrador global no Core, sem alteração neste pacote.
+
+Meu Perfil possui dados, acessos e troca de senha até a chamada Core, com testes sintéticos. Cadastro administrativo já gera senha inicial no BFF por primeiro nome em minúsculas + `1234`, regra previsível que precisa de revisão antes de produção. Cadastro público usa senha escolhida pela pessoa. Nenhum retorno de cadastro comprova autenticação, concessão de perfil ou troca obrigatória. Homologar essas etapas e os efeitos da recuperação/troca na sessão. Veja [continuidade](continuidade-2026-11-01.md) e [README](../README.md) para estado atual.
+
 Atualização: 2026-10-31. Este documento diferencia implementação local, contrato confirmado e pendências; não registra aprovação de arquitetura de identidade nem liberação para produção.
 
 ## Diretriz solicitada e contrato encontrado
@@ -59,7 +63,7 @@ HTTP 400/401/403/422 no login são normalizados para mensagem genérica de crede
 | Concluído nesta sessão | Ambiente de QA e conta sintética autorizados pelo usuário | Usuário/Core | Login válido confirmado no cliente e na tela; não comprova demais regras de conta |
 | Concluído para Admin local | Destino após o OK: ANI Admin | Usuário/front-end | Admin sem sessão → ANI Login → login válido → continuar para Admin; consumidores externos continuam pendentes |
 | P0 | Definir como a sessão autoriza chamadas e comprova o ator no Core/consumidor | Core/identidade | Core valida identidade/autorização a cada operação; permissão revogada deixa de funcionar conforme regra definida |
-| P0 | Criação/ativação de usuário e definição de senha/recuperação | Core/negócio | Forma aprovada de provisionar conta de QA e ciclo de vida; sem senha padrão compartilhada |
+| P0 | Regras de criação/ativação de usuário, política de senha e recuperação | Core/negócio | UI de auto cadastro envia senha escolhida e confirmada, mas política de senha/estado/recuperação precisa de aprovação e teste no Core |
 | P0 | Recursos fora da API publicada | Core/escopo V1 | Implementar catálogo, solicitações, decisão e relatórios, ou aprovar explicitamente sua retirada da V1 |
 | P1 | Logout/revogação central, expiração e eventual renovação | Core/identidade | Contrato e testes comprovando encerramento e revogação; definir comportamento entre sistemas |
 | P1 | Abuso de credenciais, bloqueio progressivo, eventual MFA/CAPTCHA e auditoria de autenticação | Segurança/Core | Controles efetivos no servidor e evidências em ambiente de QA; regras aprovadas |
@@ -70,11 +74,14 @@ A sessão do usuário libera somente as operações administrativas expressament
 
 ## Recursos usados pelo projeto sem endpoint publicado
 
-- GET/POST `/portais`; GET/PUT/DELETE `/portais/{id}`.
-- GET/POST `/solicitacoes-cadastro`; GET `/solicitacoes-cadastro/{id}`; POST `/solicitacoes-cadastro/{id}/aprovar`; POST `/solicitacoes-cadastro/{id}/rejeitar`.
+O catálogo de sistemas foi publicado desde esta análise: veja [`GET /sistemas`](ani-core-openapi-v1.json) e o estado de integração em [conexão ao Core](conexao-core.md).
+
+- Fila/decisão: GET/POST `/solicitacoes-cadastro`; GET `/solicitacoes-cadastro/{id}`; POST `/solicitacoes-cadastro/{id}/aprovar`; POST `/solicitacoes-cadastro/{id}/rejeitar`.
 - GET `/relatorios/acessos`.
 
-Não substituir solicitação pública por criação administrativa de usuário. Aprovação/provisionamento, deduplicação, comprovação de e-mail e escopo por sistema continuam pendentes.
+O fluxo do Login foi definido como criação direta via `POST /usuarios`, habilitada apenas por `ANI_BFF_ENABLE_PUBLIC_REGISTRATION=true`. O formulário usa e-mail como login, solicita e confirma a senha e não envia status, sistema ou justificativa; conta criada não significa acesso concedido. A fila/aprovação permanece indisponível sem endpoint. Não foi feita mutação real para validar esse fluxo.
+
+Verificação de implementação local: BFF 15 testes e Login 7 testes passaram com Core sintético; não executar cadastro real em QA sem autorização operacional explícita para criação de usuário.
 
 ## Verificações desta implementação
 

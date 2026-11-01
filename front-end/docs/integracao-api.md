@@ -1,5 +1,7 @@
 # Arquitetura de acesso às APIs ANI
 
+**Atualização de implementação (2026-11-01):** o modo executável já usa login por credenciais → BFF → Core, com token no servidor, sessão e CSRF; mocks seguem isolados. Meu Perfil tem rotas próprias de leitura, acessos e troca de senha com identidade derivada da sessão. Acesso total para Administrador continua pendente de escopo/códigos no Core; esta entrega mantém a autorização vigente. Consulte [conexão ao Core](conexao-core.md) e [README](../README.md). As descrições mock-only abaixo são históricas e os diagramas OIDC/Cognito continuam propostas, não decisões aprovadas.
+
 ## Estado informado
 
 - Outro analista está desenvolvendo o ANI Core/API em C# com base nos endpoints previamente sugeridos. Este workstream prepara o BFF/front-end; deve consumir o OpenAPI e instruções locais que o analista disponibilizar, sem presumir que rotas/payloads já estejam implantados.

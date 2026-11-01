@@ -1,5 +1,42 @@
 # Continuidade do desenvolvimento ANI — 2026-11-01
 
+## Fechamento atualizado — 2026-11-01
+
+Esta seção substitui o estado mock-only da passagem histórica abaixo. O workspace usa login/senha → BFF → Core com token no servidor e sessão opaca no navegador. O mock continua sendo demonstração separada. Não houve deploy ou migração nesta entrega.
+
+### Alterações incluídas
+
+- Meu Perfil acessível pelo menu e pelo avatar, com abas Meus dados, Acessos e Trocar senha. Dados somente leitura, perfis por sistema, permissões efetivas e formulário de senha com validação/visibilidade.
+- Componente standalone `ani-meu-perfil`, porta `MY_ACCOUNT_API`, estados independentes de carregamento, teclado nas abas e layout por container queries.
+- GET `/bff/api/v1/me`, GET `/bff/api/v1/me/acessos` e POST `/bff/api/v1/auth/trocar-senha`, sempre com identidade derivada da sessão. Fallback de acessos limitado a informações da sessão em 403/404.
+- Cadastro público direto opt-in e recuperação via BFF. Cadastro administrativo gera senha inicial no BFF conforme regra já existente (primeiro nome em minúsculas + `1234`); não é uma política segura aprovada para produção.
+- Adaptação de sistemas, perfis e permissões ao contrato disponível, testes de regressão e OpenAPI local.
+
+### Pendências e limites
+
+- **Administrador global:** acesso total foi solicitado, não implementado neste pacote. Confirmar escopo por sistema, perfil global e códigos com o Core. `catalog.write` e `users.write` continuam necessárias, além da habilitação de escrita. Reautenticar após alterar permissões.
+- **Cadastro/login:** não inferir senha gravada ou login bem-sucedido pelo retorno do cadastro. Confirmar login, status, política de credenciais, duplicidade e confirmação de e-mail; uma recusa de autenticação não comprova falta de perfil.
+- **Senha:** revisar geração previsível, convite/recuperação, troca obrigatória e semântica de `usuario` na API. Troca real e efeito na sessão ainda não homologados.
+- **V1:** solicitações/aprovações e relatório real pendentes, inativação sem semântica aprovada, build Admin de produção bloqueado por orçamento CSS.
+- **Operação:** `.env.local` permanece fora do Git. Escritas desligadas no exemplo; habilitar apenas no ambiente autorizado. Reiniciar BFF encerra sessões em memória. Não publicar este servidor local.
+
+### Verificações
+
+Verificações executadas neste fechamento:
+
+| Comando (em `front-end/`) | Resultado |
+|---|---|
+| `npm --prefix bff/ani-admin test` | 20 testes passaram |
+| `npx ng test ani-admin --watch=false` | 18 testes passaram |
+| `npx ng test ani-login --watch=false` | 10 testes passaram |
+| `npx ng build ani-admin --configuration development` | Passou |
+| `npx ng build ani-login` | Produção passou |
+| `npx ng build ani-admin` | Falhou: `app.scss` com 16,66 kB para limite de 12 kB |
+
+Os testes BFF usam Core HTTP sintético em loopback e não chamam a API real. O orçamento CSS não foi alterado. Revisão local dos arquivos alterados/novos não encontrou chaves privadas, tokens dos formatos verificados ou e-mails não sintéticos; essa checagem limitada não constitui auditoria de segurança. `.env.local` continua ignorado pelo Git. Evidências históricas abaixo não representam a contagem atual.
+
+## Passagem histórica preparada em 2026-10-31
+
 **Preparado em:** 2026-10-31  
 **Objetivo:** retomar o desenvolvimento do front-end e BFF mock do ponto atual, sem reabrir decisões já documentadas nem tratar mocks como integração real.
 

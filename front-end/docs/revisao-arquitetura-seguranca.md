@@ -1,5 +1,7 @@
 # Revisão de arquitetura e segurança — front-end e APIs ANI
 
+**Nota de atualização (2026-11-01):** esta revisão é histórica e de desenho; não constitui auditoria das alterações atuais. O modo local agora integra login, cadastro/recuperação e Meu Perfil via BFF, conforme [README](../README.md). Administrador global e acesso total permanecem pendentes; nenhuma elevação de privilégios integra este pacote. A geração previsível de senha inicial existente no BFF exige revisão de política antes de produção. OIDC/Cognito segue proposta e os limites de produção continuam em aberto.
+
 **Escopo:** revisão da arquitetura documentada para `ani-login`, `ani-admin`, BFF Node.js/TypeScript e API C# ANI Core. É uma revisão de desenho, não uma auditoria do código. O código-fonte da API e dos futuros serviços não está associado a este workspace; portanto, não foi possível verificar endpoints, configuração, controles efetivamente implantados ou testes.
 
 **Conclusão:** a separação entre login central, portal administrativo e API Core é uma boa base. A arquitetura ainda não está pronta para implementar autenticação multiaplicação com segurança porque protocolo de identidade, retorno confiável, contexto do usuário entre BFF e Core, matriz de autorização, revogação e superfície de rede continuam sem contrato. Os wireframes e a estrutura Angular podem prosseguir como UX; não conecte credenciais ou operações privilegiadas antes de resolver os itens P0.

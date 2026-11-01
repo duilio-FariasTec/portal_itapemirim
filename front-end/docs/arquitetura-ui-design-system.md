@@ -4,6 +4,8 @@
 
 **Status:** diretriz visual e de arquitetura do workspace Angular local já implementado. `ani-login` e `ani-admin` têm folhas de estilo próprias e compartilham tokens em `libs/design-tokens/`; a marca oficial completa, versões suportadas, biblioteca de componentes aprovada e design system corporativo ainda não foram confirmados. As regras abaixo orientam a evolução e não declaram aprovação final de acessibilidade ou marca.
 
+**Implementação de Meu Perfil (2026-11-01):** `apps/ani-admin/src/app/features/meu-perfil/` contém componente standalone com abas Meus dados, Acessos e Trocar senha, porta injetável `MY_ACCOUNT_API`, tokens com fallback e container queries para adaptação à largura do host. Abas têm navegação por teclado; o avatar abre a página no desktop e celular. A revisão visual não é certificação WCAG. Reutilização externa exige adaptador e autorização/sessão do consumidor; o componente não substitui controles do servidor. Demais extrações descritas abaixo continuam propostas.
+
 ## Objetivo
 
 Manter as experiências Angular ANI visualmente coerentes e fáceis de alterar sem acoplar layouts, autenticação ou regras de negócio. A identidade deve lembrar a Nova Itapemirim de forma contemporânea e limpa: superfícies claras, tipografia legível, grafite para ações principais e amarelo institucional como destaque controlado. Se Amazon Cognito for aprovado, a tela que coleta credenciais será Managed Login; Angular pode hospedar o ponto de entrada/contexto e solicitação de acesso, mas não duplicar a autenticação.

@@ -1,5 +1,9 @@
 # Análise de integração ANI Core API — 2026-10-31
 
+> Snapshot histórico. Em 2026-11-01, o OpenAPI atualizado passou a declarar os endpoints de sistemas; veja [contrato OpenAPI v1 atual](ani-core-openapi-v1.json) e [conexão atual ao Core](conexao-core.md). As afirmações abaixo sobre ausência de `/sistemas` refletem a definição consultada em 2026-10-31.
+
+O fechamento de 2026-11-01 inclui Meu Perfil, acessos próprios, troca de senha e ajustes de cadastro já existentes; consulte [continuidade](continuidade-2026-11-01.md). Acesso total de Administrador permanece pendente, sem alteração de autorização nesta entrega. O snapshot OpenAPI e os testes locais não homologam efeitos das mutações no Core.
+
 ## Escopo e fonte
 
 Esta análise compara o workspace `front-end/` com a definição OpenAPI v1 servida pelo Swagger informado pelo responsável da API. Foi lido somente o documento Swagger/OpenAPI; não foram executadas operações de API nem enviados dados. O endereço consultado é um ambiente remoto cuja classificação (desenvolvimento/QA/produção), autenticação e estabilidade não foram confirmadas.
@@ -66,4 +70,3 @@ Depois do alinhamento, gerar/validar tipos a partir do OpenAPI aprovado, impleme
 - **Pronto para QA exploratório do front/mock:** conforme documentação anterior, sujeito a confirmar build de produção e preparar ambiente limpo de QA.
 - **Pronto para QA integrado com a API recebida:** ainda não. Há correspondência parcial de domínios, mas diferenças de DTO/filtros, respostas não descritas, auth indeterminada e três áreas de UI sem rotas documentadas (solicitações, catálogo e relatórios).
 - **Pronto para produção:** não é possível concluir pelo Swagger. Esta análise não avaliou implementação, autorização efetiva, dados, rede, persistência, monitoramento nem segurança operacional.
-

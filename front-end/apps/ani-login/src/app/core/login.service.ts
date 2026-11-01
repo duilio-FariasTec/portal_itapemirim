@@ -4,10 +4,14 @@ import { Observable } from 'rxjs';
 
 export interface LoginContext {
   configured: boolean;
+  registrationEnabled?: boolean;
   authenticated: boolean;
   csrfToken?: string;
   adminUrl?: string;
   user?: { id: string; displayName: string };
+}
+export interface PasswordResetResponse {
+  mensagem: string;
 }
 @Injectable({ providedIn: 'root' })
 export class LoginService {
@@ -18,5 +22,8 @@ export class LoginService {
   }
   logout(csrfToken: string): Observable<LoginContext> {
     return this.http.post<LoginContext>('/bff/auth/user-logout', {}, {withCredentials:true,headers:{'X-CSRF-Token':csrfToken}});
+  }
+  requestPasswordReset(email: string, csrfToken: string): Observable<PasswordResetResponse> {
+    return this.http.post<PasswordResetResponse>('/bff/auth/password-reset', { email }, { withCredentials: true, headers: { 'X-CSRF-Token': csrfToken } });
   }
 }
