@@ -1,0 +1,22 @@
+services:
+  portal-itapemirim-web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: portal-itapemirim-web
+    ports:
+      - "8080:8080"
+    environment:
+      - NODE_ENV=homologation
+      - ANI_BFF_HOMOLOGATION=true
+      - ANI_BFF_HOST=0.0.0.0
+      - ANI_BFF_PORT=8080
+      - ANI_STATIC_DIR=/app/static
+      - ANI_LOGIN_FRONTEND_URL=/login/
+      - ANI_ADMIN_FRONTEND_URL=/admin/
+      - ANI_BFF_ENABLE_WRITES=true
+      - ANI_BFF_ENABLE_PUBLIC_REGISTRATION=false
+      - ANI_LOGIN_CONTRACT=core-bearer-v1
+      - ANI_CORE_BASE_URL=https://po-25bbb3c112ec4ce7ba42aae7c30034a5.ecs.us-east-1.on.aws
+    restart: unless-stopped
+

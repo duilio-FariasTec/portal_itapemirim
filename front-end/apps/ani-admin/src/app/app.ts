@@ -162,8 +162,12 @@ export class App implements OnInit {
     });
   }
   protected goToLogin(): void {
-    const target=new URL(this.session()?.loginUrl??'http://127.0.0.1:4201/');
-    if(!['http:','https:'].includes(target.protocol)||!['127.0.0.1','localhost'].includes(target.hostname)||target.pathname!=='/'||target.search||target.hash) { this.error.set('Destino de acesso inválido.');return; }
+    const raw = this.session()?.loginUrl ?? 'http://127.0.0.1:4201/';
+    if (raw.startsWith('/') && !raw.startsWith('//') && !/[?#\s]/.test(raw)) { window.location.assign(raw); return; }
+    const target = new URL(raw, window.location.origin);
+    const sameOriginHttps = target.origin === window.location.origin && target.protocol === 'https:';
+    const localLoopback = ['http:', 'https:'].includes(target.protocol) && ['127.0.0.1', 'localhost'].includes(target.hostname);
+    if ((!sameOriginHttps && !localLoopback) || !['/', '/login', '/login/'].includes(target.pathname) || target.search || target.hash) { this.error.set('Destino de acesso inválido.'); return; }
     window.location.assign(target.href);
   }
   protected canNavigate(section:Section):boolean {return section==='visao-geral'||section==='meu-perfil'||Boolean(this.session()?.capabilities.includes(this.capabilityFor(section)));}

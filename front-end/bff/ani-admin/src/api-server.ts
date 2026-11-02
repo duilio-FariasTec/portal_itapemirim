@@ -1,4 +1,6 @@
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
+import { existsSync, readFileSync, statSync } from 'node:fs';
+import { extname, normalize, resolve } from 'node:path';
 import { randomUUID, timingSafeEqual } from 'node:crypto';
 import { pathToFileURL } from 'node:url';
 import { assertCoreRoute, callCore, changeCorePassword, CoreError, coreDestination } from './core-client.ts';
@@ -7,23 +9,27 @@ import { createLoginRoutes } from './login-routes.ts';
 import { capabilitiesFor, authorizeOperation } from './authorization.ts';
 import { mockAccessReport } from './mock-access-report.ts';
 
-type Config = { baseUrl: string; port: number; origins: Set<string>; writes: boolean; publicRegistration?: boolean; loginContract?: string; loginUrl?: string; adminUrl?: string };
+type Config = { baseUrl: string; port: number; bindHost?: string; origins: Set<string>; sameOriginHost?: boolean; writes: boolean; publicRegistration?: boolean; loginContract?: string; loginUrl?: string; adminUrl?: string; staticDir?: string };
 export function configuration(env: NodeJS.ProcessEnv): Config {
-  if (!['development', 'test'].includes(env.NODE_ENV ?? '')) throw new Error('Integração local permitida somente em desenvolvimento/teste');
+  const isHomolog = env.NODE_ENV === 'homologation' || env.ANI_BFF_HOMOLOGATION === 'true';
+  if (!['development', 'test'].includes(env.NODE_ENV ?? '') && !isHomolog) throw new Error('Integração local permitida somente em desenvolvimento/teste');
   const baseUrl = coreDestination(env.ANI_CORE_BASE_URL ?? '').origin;
-  const port = Number(env.ANI_BFF_PORT ?? 3333);
+  const port = Number(env.ANI_BFF_PORT ?? (isHomolog ? 8080 : 3333));
   if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error('Porta inválida');
   const origins = new Set((env.ANI_ALLOWED_ORIGINS ?? 'http://127.0.0.1:4200,http://127.0.0.1:4201,http://localhost:4200,http://localhost:4201').split(',').map(v => v.trim()));
   for (const value of origins) {
     const origin = new URL(value);
-    if (origin.origin !== value || !['http:', 'https:'].includes(origin.protocol) || !['localhost', '127.0.0.1'].includes(origin.hostname)) throw new Error('Integração local exige origens de browser em loopback');
+    if (origin.origin !== value || !['http:', 'https:'].includes(origin.protocol)) throw new Error('Integração local exige origens de browser em loopback');
+    if (!isHomolog && !['localhost', '127.0.0.1'].includes(origin.hostname)) throw new Error('Integração local exige origens de browser em loopback');
   }
   if (env.ANI_BFF_ENABLE_WRITES && !['true', 'false'].includes(env.ANI_BFF_ENABLE_WRITES)) throw new Error('ANI_BFF_ENABLE_WRITES deve ser true ou false');
   if (env.ANI_BFF_ENABLE_PUBLIC_REGISTRATION && !['true', 'false'].includes(env.ANI_BFF_ENABLE_PUBLIC_REGISTRATION)) throw new Error('ANI_BFF_ENABLE_PUBLIC_REGISTRATION deve ser true ou false');
-  const loginUrl=env.ANI_LOGIN_FRONTEND_URL || 'http://127.0.0.1:4201/';
-  const adminUrl=env.ANI_ADMIN_FRONTEND_URL || 'http://127.0.0.1:4200/';
-  for(const value of [loginUrl,adminUrl]) {const target=new URL(value);if(!origins.has(target.origin)||target.pathname!=='/'||target.search||target.hash||target.username||target.password)throw new Error('Destino de login/admin deve ser uma origem local permitida, sem parâmetros');}
-  return { baseUrl, port, origins, writes: env.ANI_BFF_ENABLE_WRITES === 'true', publicRegistration: env.ANI_BFF_ENABLE_PUBLIC_REGISTRATION === 'true', loginContract: env.ANI_LOGIN_CONTRACT || 'core-bearer-v1', loginUrl, adminUrl };
+  const loginUrl=env.ANI_LOGIN_FRONTEND_URL || (isHomolog ? '/login/' : 'http://127.0.0.1:4201/');
+  const adminUrl=env.ANI_ADMIN_FRONTEND_URL || (isHomolog ? '/admin/' : 'http://127.0.0.1:4200/');
+  for(const value of [loginUrl,adminUrl]) {if(isHomolog&&value.startsWith('/')&&!value.startsWith('//')&&!/[?#\s]/.test(value))continue;const target=new URL(value);if(!origins.has(target.origin)||target.pathname!=='/'||target.search||target.hash||target.username||target.password)throw new Error('Destino de login/admin deve ser uma origem local permitida, sem parâmetros');}
+  const bindHost = env.ANI_BFF_HOST || (isHomolog ? '0.0.0.0' : '127.0.0.1');
+  const staticDir = env.ANI_STATIC_DIR ? resolve(env.ANI_STATIC_DIR) : undefined;
+  return { baseUrl, port, bindHost, origins, sameOriginHost: isHomolog, writes: env.ANI_BFF_ENABLE_WRITES === 'true', publicRegistration: env.ANI_BFF_ENABLE_PUBLIC_REGISTRATION === 'true', loginContract: env.ANI_LOGIN_CONTRACT || 'core-bearer-v1', loginUrl, adminUrl, staticDir };
 }
 async function json(request: IncomingMessage): Promise<Record<string, unknown>> {
   if (!/^application\/json(?:;|$)/i.test(request.headers['content-type'] ?? '')) throw new CoreError(415, 'Content-Type deve ser application/json');
@@ -38,6 +44,43 @@ async function json(request: IncomingMessage): Promise<Record<string, unknown>> 
     if (!body || typeof body !== 'object' || Array.isArray(body)) throw new Error();
     return body as Record<string, unknown>;
   } catch { throw new CoreError(400, 'JSON inválido'); }
+}
+const mimeTypes: Record<string, string> = {
+  '.html': 'text/html; charset=utf-8',
+  '.js': 'text/javascript; charset=utf-8',
+  '.css': 'text/css; charset=utf-8',
+  '.json': 'application/json; charset=utf-8',
+  '.ico': 'image/x-icon',
+  '.svg': 'image/svg+xml',
+  '.png': 'image/png',
+  '.woff2': 'font/woff2',
+  '.woff': 'font/woff',
+};
+function serveStaticApp(staticDir: string, pathname: string, response: ServerResponse): boolean {
+  if (pathname === '/' || pathname === '/login' || pathname === '/admin') {
+    response.statusCode = 302;
+    response.setHeader('Location', pathname === '/admin' ? '/admin/' : '/login/');
+    response.end();
+    return true;
+  }
+  const appPrefix = pathname.startsWith('/login/') ? '/login/' : pathname.startsWith('/admin/') ? '/admin/' : undefined;
+  if (!appPrefix) return false;
+  const appDir = resolve(staticDir, appPrefix === '/login/' ? 'login' : 'admin');
+  const relativePath = normalize(pathname.slice(appPrefix.length)).replace(/^(\.\.(\/|\\|$))+/, '');
+  let targetFile = resolve(appDir, relativePath || 'index.html');
+  if (!targetFile.startsWith(appDir)) return false;
+  if (!existsSync(targetFile) || statSync(targetFile).isDirectory()) {
+    if (extname(relativePath)) return false;
+    targetFile = resolve(appDir, 'index.html');
+    if (!existsSync(targetFile)) return false;
+  }
+  const ext = extname(targetFile).toLowerCase();
+  response.statusCode = 200;
+  response.setHeader('Content-Type', mimeTypes[ext] ?? 'application/octet-stream');
+  response.setHeader('Content-Security-Policy', "default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'");
+  if (ext && ext !== '.html') response.setHeader('Cache-Control', 'public, max-age=86400');
+  response.end(readFileSync(targetFile));
+  return true;
 }
 export function createApiServer(config: Config) {
   const loginRoutes = createLoginRoutes(config.baseUrl, config.loginContract, config.adminUrl, config.publicRegistration);
@@ -58,17 +101,24 @@ export function createApiServer(config: Config) {
       response.end(JSON.stringify(value));
     };
     const execute = async () => {
-      if (!['127.0.0.1:' + config.port, 'localhost:' + config.port].includes(request.headers.host ?? '')) throw new CoreError(403, 'Host não permitido');
+      const hostHeader = (request.headers.host ?? '').trim().toLowerCase();
+      const localHost = ['127.0.0.1:' + config.port, 'localhost:' + config.port].includes(hostHeader);
+      if (!localHost && (!config.sameOriginHost || !/^[a-z0-9.-]+(?::\d{1,5})?$/.test(hostHeader))) throw new CoreError(403, 'Host não permitido');
       if (Date.now() - rateStart >= 60000) { rateStart = Date.now(); requestCount = 0; }
       if (++requestCount > 240) throw new CoreError(429, 'Limite de requisições excedido');
       const url = new URL(request.url ?? '/', 'http://localhost');
       const method = request.method ?? 'GET';
-      if (url.pathname === '/bff/health' && method === 'GET') return send(200, { status: 'ok', coreMode: 'api', authMode: 'core', writesEnabled: config.writes });
+      if ((url.pathname === '/bff/health' || url.pathname === '/health') && method === 'GET') return send(200, { status: 'ok', coreMode: 'api', authMode: 'core', writesEnabled: config.writes });
+      if (config.staticDir && !url.pathname.startsWith('/bff/') && ['GET', 'HEAD'].includes(method)) {
+        if (serveStaticApp(config.staticDir, url.pathname, response)) return;
+        throw new CoreError(404, 'Página não encontrada');
+      }
       const origin = request.headers.origin;
-      if (origin && !config.origins.has(origin)) throw new CoreError(403, 'Origem não permitida');
+      const isAllowedOrigin = (value?: string) => Boolean(value && (config.origins.has(value) || (config.sameOriginHost && hostHeader && (() => { try { const parsed = new URL(value); return ['http:', 'https:'].includes(parsed.protocol) && parsed.host.toLowerCase() === hostHeader; } catch { return false; } })())));
+      if (origin && !isAllowedOrigin(origin)) throw new CoreError(403, 'Origem não permitida');
       if (request.headers['sec-fetch-site'] === 'cross-site') throw new CoreError(403, 'Requisição entre sites negada');
       const mutating = !['GET', 'HEAD'].includes(method);
-      if (mutating && (!origin || !config.origins.has(origin))) throw new CoreError(403, 'Origem obrigatória');
+      if (mutating && !isAllowedOrigin(origin)) throw new CoreError(403, 'Origem obrigatória');
       const loginReply = await loginRoutes(request, url.pathname === '/bff/auth/logout' ? '/bff/auth/user-logout' : url.pathname, correlationId, () => json(request));
       if (loginReply) {
         if (loginReply.cookie) response.setHeader('Set-Cookie', loginReply.cookie);
@@ -288,6 +338,6 @@ export function createApiServer(config: Config) {
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const config = configuration(process.env);
   const server = createApiServer(config);
-  server.listen(config.port, '127.0.0.1', () => console.log(`ANI BFF de integração local na porta ${config.port}`));
+  server.listen(config.port, config.bindHost ?? '127.0.0.1', () => console.log(`ANI BFF em execução em ${config.bindHost ?? '127.0.0.1'}:${config.port}`));
   for (const signal of ['SIGTERM', 'SIGINT'] as const) process.once(signal, () => { server.close(); server.closeIdleConnections(); });
 }

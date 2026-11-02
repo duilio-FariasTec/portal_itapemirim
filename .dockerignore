@@ -1,0 +1,14 @@
+.git
+.github
+.vs
+.vscode
+**/node_modules
+**/dist
+**/.angular
+**/coverage
+**/outputs
+**/.env
+**/.env.*
+!**/.env.example
+*.md
+
