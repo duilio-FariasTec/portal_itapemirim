@@ -289,7 +289,7 @@ test('user login: explicit Core identity, session rotation, failed HTTP 200, no 
     const after=await fetch(base+'/bff/auth/user-session',{headers:{Cookie:cookie}}); assert.equal((await after.json() as any).authenticated,false);
   } finally { await Promise.all([new Promise<void>(resolve=>bff.close(()=>resolve())),new Promise<void>(resolve=>upstream.close(()=>resolve()))]); }
 });
-test('self profile and password change use only the authenticated user GUID and API profile fields',async()=>{
+test('self profile uses the session GUID and password change uses only the authenticated profile login',async()=>{
   const passwordRequests: Record<string,unknown>[]=[];
   const upstream=createServer(async(req,res)=>{
     res.setHeader('Content-Type','application/json');
@@ -306,6 +306,7 @@ test('self profile and password change use only the authenticated user GUID and 
       assert.equal(req.headers.authorization,`Bearer ${'qa-token-sintetico'.repeat(3)}`);
       let raw='';for await(const chunk of req)raw+=chunk;
       passwordRequests.push(JSON.parse(raw));
+      if(passwordRequests.at(-1)?.usuario!=='pessoa.demo'){res.statusCode=400;res.end();return;}
       res.statusCode=204;res.end();return;
     }
     res.statusCode=404;res.end();
@@ -325,10 +326,14 @@ test('self profile and password change use only the authenticated user GUID and 
     assert.equal((await fetch(base+'/bff/api/v1/auth/trocar-senha',{method:'POST',headers:{Origin:origin,Cookie:cookie,'Content-Type':'application/json'},body:JSON.stringify(passwordBody)})).status,403);
     const changed=await fetch(base+'/bff/api/v1/auth/trocar-senha',{method:'POST',headers,body:JSON.stringify({...passwordBody,login:'outro-usuario'})});
     assert.equal(changed.status,400);assert.equal(passwordRequests.length,0);
+    for(const novaSenha of ['1234567',passwordBody.senhaAtual]) {
+      assert.equal((await fetch(base+'/bff/api/v1/auth/trocar-senha',{method:'POST',headers,body:JSON.stringify({...passwordBody,novaSenha})})).status,400);
+    }
+    assert.equal(passwordRequests.length,0);
     const result=await fetch(base+'/bff/api/v1/auth/trocar-senha',{method:'POST',headers,body:JSON.stringify(passwordBody)});
     assert.equal(result.status,200);assert.deepEqual(await result.json(),{ok:true});
-    assert.deepEqual(passwordRequests,[{usuario:guid,senhaAtual:'senha-atual-sintetica',novaSenha:'senha-nova-sintetica',login:'pessoa.demo',email:'pessoa@example.invalid'}]);
-    for(let i=0;i<4;i++)assert.equal((await fetch(base+'/bff/api/v1/auth/trocar-senha',{method:'POST',headers,body:JSON.stringify(passwordBody)})).status,200);
+    assert.deepEqual(passwordRequests,[{usuario:'pessoa.demo',senhaAtual:'senha-atual-sintetica',novaSenha:'senha-nova-sintetica'}]);
+    for(let i=0;i<4;i++)assert.equal((await fetch(base+'/bff/api/v1/auth/trocar-senha',{method:'POST',headers,body:JSON.stringify({...passwordBody,novaSenha:'12345678'})})).status,200);
     assert.equal((await fetch(base+'/bff/api/v1/auth/trocar-senha',{method:'POST',headers,body:JSON.stringify(passwordBody)})).status,429);
     assert.equal(passwordRequests.length,5);
   }finally{await Promise.all([new Promise<void>(resolve=>bff.close(()=>resolve())),new Promise<void>(resolve=>upstream.close(()=>resolve()))]);}

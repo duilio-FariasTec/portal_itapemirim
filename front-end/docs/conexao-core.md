@@ -38,7 +38,7 @@ Prefixo do browser: `/bff/api/v1`. Prefixo do Core: `/api/v1`.
 |---|---|
 | Perfil próprio | GET `/me` consulta `/usuarios/{guidDaSessao}`; não aceita identificador escolhido pelo navegador |
 | Acessos próprios | GET `/me/acessos` consulta perfis e permissões efetivas do GUID da sessão; 403/404 usa dados da sessão com `origem: sessao`, 401 encerra a sessão e demais falhas são propagadas |
-| Troca de senha | POST `/auth/trocar-senha` recebe somente `senhaAtual` e `novaSenha`; BFF preenche `usuario`, `login` e `email` e chama a rota Core homônima |
+| Troca de senha | POST `/auth/trocar-senha` recebe somente `senhaAtual` e `novaSenha`; BFF preenche apenas `usuario` com o login do perfil autenticado e chama a rota Core homônima |
 | Usuários | GET/POST `/usuarios`; GET/PUT/DELETE `/usuarios/{uuid}`. O POST público de auto cadastro é opt-in por `ANI_BFF_ENABLE_PUBLIC_REGISTRATION`; demais mutações seguem `ANI_BFF_ENABLE_WRITES` e capacidades |
 | Sistemas | GET/POST `/sistemas`; GET/PUT `/sistemas/{guid}`; GET `/sistemas/codigo/{codigo}`. DELETE não encaminhado até confirmar semântica |
 | Perfis de usuário | GET/POST `/usuarios/{uuid}/perfis`; DELETE `/usuarios/{uuid}/perfis/{perfilUuid}` |
@@ -99,7 +99,7 @@ O pedido posterior de acesso total para Administrador está **pendente**. `catal
 
 O POST administrativo `/usuarios` gera a senha inicial no BFF por `initialPassword`, usando primeiro nome em minúsculas e sufixo `1234`; rejeita senha enviada pelo navegador. Essa implementação existente é previsível e depende de revisão de política antes de produção. Não altera contas antigas e não garante login nem troca obrigatória no primeiro acesso. O cadastro público é outro fluxo e mantém senha escolhida pela pessoa.
 
-Trocar senha exige sessão, CSRF, escritas habilitadas, limites de entrada, concorrência e até cinco tentativas por minuto por sessão. O BFF envia `usuario` como GUID da sessão e busca login/e-mail no próprio registro. Confirmar a semântica desses campos, a política do Core e a validade da sessão após troca. Testes com Core sintético não substituem uma troca real autorizada; não incluir senhas ou tokens em evidências.
+Trocar senha exige sessão, CSRF, escritas habilitadas, limites de entrada, concorrência e até cinco tentativas por minuto por sessão. O BFF consulta o próprio registro pelo GUID da sessão e envia apenas `usuario` com o login desse perfil (obrigatório, até 254 caracteres), nunca o GUID nem identificadores fornecidos pelo navegador. A API escolhe um identificador na ordem `usuario` → `login` → `email`; `usuario` aceita login ou e-mail, não GUID. UI e BFF exigem nova senha com pelo menos 8 caracteres e diferente da atual, preservando o limite local de 256 caracteres. O Core continua responsável por validar senha atual e conta ativa, atualizar a senha, remover a exigência de troca e auditar. Confirmar a validade da sessão após troca. Testes com Core sintético não substituem uma troca real autorizada; não incluir senhas ou tokens em evidências.
 
 ## Relatório demonstrativo restaurado por solicitação do usuário
 

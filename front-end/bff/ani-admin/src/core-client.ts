@@ -121,7 +121,7 @@ export async function requestCorePasswordReset(baseUrl: string, email: string, c
 export async function changeCorePassword(
   baseUrl: string,
   authorization: string,
-  input: { usuario: string; senhaAtual: string; novaSenha: string; login: string; email: string },
+  input: { usuario: string; senhaAtual: string; novaSenha: string },
   correlationId = randomUUID(),
 ): Promise<void> {
   if (!authorization || /[\r\n]/.test(authorization)) throw new CoreError(401, 'Credencial do operador inválida');

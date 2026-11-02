@@ -65,12 +65,13 @@ export class MeuPerfilComponent implements OnInit, OnDestroy {
       filled: Boolean(current && next && confirmation),
       different: Boolean(current) && Boolean(next) && next !== current,
       matches: Boolean(confirmation) && next === confirmation,
+      minimumLength: next.length >= 8,
       withinLimit: current.length <= maxPasswordLength && next.length <= maxPasswordLength,
     };
   });
   protected readonly canSubmitPassword = computed(() => {
     const check = this.checks();
-    return this.passwordAvailable() && !this.changing() && this.profileState() === 'ready' && check.filled && check.different && check.matches && check.withinLimit;
+    return this.passwordAvailable() && !this.changing() && this.profileState() === 'ready' && check.filled && check.minimumLength && check.different && check.matches && check.withinLimit;
   });
   protected readonly permissionGroups = computed<PermissionGroup[]>(() => {
     const filter = this.permissionFilter().trim().toLocaleLowerCase('pt-BR');
@@ -203,6 +204,7 @@ export class MeuPerfilComponent implements OnInit, OnDestroy {
     const check = this.checks();
     if (!check.filled) return 'Preencha a senha atual, a nova senha e a confirmação.';
     if (!check.withinLimit) return `As senhas devem ter até ${maxPasswordLength} caracteres.`;
+    if (!check.minimumLength) return 'A nova senha deve ter pelo menos 8 caracteres.';
     if (!check.different) return 'A nova senha deve ser diferente da senha atual.';
     if (!check.matches) return 'A confirmação não corresponde à nova senha.';
     return 'Revise os dados informados.';
