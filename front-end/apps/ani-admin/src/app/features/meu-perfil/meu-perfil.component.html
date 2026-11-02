@@ -121,7 +121,7 @@
         <div class="password-field">
           <label for="perfil-senha-nova">Nova senha</label>
           <div class="password-input">
-            <input id="perfil-senha-nova" name="novaSenha" [type]="visible().nova ? 'text' : 'password'" autocomplete="new-password" maxlength="256" required aria-describedby="perfil-senha-regras" [attr.aria-invalid]="submitted() && !checks().different" [disabled]="changing()" [value]="newPassword()" (input)="updatePassword('nova', $any($event.target).value)" (keyup)="detectCapsLock($event)" />
+            <input id="perfil-senha-nova" name="novaSenha" [type]="visible().nova ? 'text' : 'password'" autocomplete="new-password" minlength="8" maxlength="256" required aria-describedby="perfil-senha-regras" [attr.aria-invalid]="submitted() && (!checks().minimumLength || !checks().different)" [disabled]="changing()" [value]="newPassword()" (input)="updatePassword('nova', $any($event.target).value)" (keyup)="detectCapsLock($event)" />
             <button type="button" class="password-toggle" [attr.aria-pressed]="visible().nova" [attr.aria-label]="(visible().nova ? 'Ocultar' : 'Mostrar') + ' nova senha'" (click)="toggleVisibility('nova')">{{ visible().nova ? 'Ocultar' : 'Mostrar' }}</button>
           </div>
         </div>
@@ -134,6 +134,7 @@
         </div>
         @if (capsLock()) { <p class="password-warning" role="status">Caps Lock está ativado.</p> }
         <ul id="perfil-senha-regras" class="password-checks">
+          <li [class.ok]="checks().minimumLength"><span aria-hidden="true">{{ checks().minimumLength ? '✓' : '•' }}</span> Pelo menos 8 caracteres</li>
           <li [class.ok]="checks().different"><span aria-hidden="true">{{ checks().different ? '✓' : '•' }}</span> Diferente da senha atual</li>
           <li [class.ok]="checks().matches"><span aria-hidden="true">{{ checks().matches ? '✓' : '•' }}</span> Confirmação igual à nova senha</li>
         </ul>

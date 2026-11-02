@@ -163,10 +163,11 @@ export function createApiServer(config: Config) {
         const input = await json(request);
         if (Object.keys(input).sort().join(',') !== 'novaSenha,senhaAtual'
           || typeof input['senhaAtual'] !== 'string' || !input['senhaAtual'] || input['senhaAtual'].length > 256
-          || typeof input['novaSenha'] !== 'string' || !input['novaSenha'] || input['novaSenha'].length > 256) {
+          || typeof input['novaSenha'] !== 'string' || input['novaSenha'].length < 8 || input['novaSenha'].length > 256
+          || input['novaSenha'] === input['senhaAtual']) {
           input['senhaAtual'] = '';
           input['novaSenha'] = '';
-          throw new CoreError(400, 'Informe as senhas dentro dos limites');
+          throw new CoreError(400, 'Informe a senha atual e uma nova senha de 8 a 256 caracteres, diferente da atual');
         }
         if (session.busy) {
           input['senhaAtual'] = '';
@@ -198,17 +199,13 @@ export function createApiServer(config: Config) {
             throw new CoreError(403, 'Sessão encerrada; autentique-se novamente');
           }
           const login = profile['login'];
-          const email = profile['email'];
-          if (typeof login !== 'string' || !login.trim() || login.length > 200
-            || typeof email !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 180) {
-            throw new CoreError(502, 'Login ou e-mail ausente no perfil da API');
+          if (typeof login !== 'string' || !login.trim() || login.trim().length > 254) {
+            throw new CoreError(502, 'Login ausente ou inválido no perfil da API');
           }
           const changeRequest = {
-            usuario: identity.user.id,
+            usuario: login.trim(),
             senhaAtual: input['senhaAtual'],
             novaSenha: input['novaSenha'],
-            login: login.trim(),
-            email: email.trim(),
           };
           try {
             await changeCorePassword(config.baseUrl, identity.authorization, changeRequest, correlationId);
